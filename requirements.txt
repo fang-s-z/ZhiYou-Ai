@@ -1,0 +1,71 @@
+# ============================
+# 智游AI - 环境配置说明
+# ============================
+#
+# 一、Python依赖安装
+# ============================
+# 安装命令：
+# pip install -r requirements.txt
+#
+
+fastapi
+uvicorn
+python-dotenv
+pydantic
+dashscope
+httpx
+
+
+# ============================
+# 二、环境变量配置
+# ============================
+#
+# 在项目根目录创建 .env 文件，配置以下内容：
+#
+# DASHSCOPE_API_KEY=你的阿里云通义千问API密钥
+# AMAP_WEATHER_KEY=你的高德地图天气API密钥
+# AMAP_KEY=你的高德地图POI搜索API密钥（可选，推荐单独配置）
+#
+#
+# 三、API密钥获取说明
+# ============================
+#
+# 1. DASHSCOPE_API_KEY (通义千问)
+#    - 用途：AI行程规划生成
+#    - 获取地址：https://dashscope.console.aliyun.com/
+#    - 步骤：注册账号 -> 创建API Key
+#
+# 2. AMAP_WEATHER_KEY (高德地图天气)
+#    - 用途：实时天气查询
+#    - 获取地址：https://lbs.amap.com/
+#    - 步骤：注册账号 -> 控制台 -> 创建应用 -> 添加Web服务类型Key
+#
+# 3. AMAP_KEY (高德地图POI)
+#    - 用途：景点、美食、酒店、交通数据查询
+#    - 获取地址：https://lbs.amap.com/
+#    - 说明：如果未配置，会尝试使用 AMAP_WEATHER_KEY
+#    - 推荐：建议单独申请一个Web服务类型的Key
+#
+#
+# 四、启动服务
+# ============================
+#
+# 启动后端API服务：
+# python API_main.py
+#
+# 服务地址：
+# - API服务：http://localhost:8000
+# - API文档：http://localhost:8000/docs
+#
+# 前端使用：
+# 直接用浏览器打开 index ().html 文件即可
+#
+#
+# 五、注意事项
+# ============================
+#
+# 1. 确保 .env 文件在项目根目录
+# 2. API密钥不要提交到代码仓库
+# 3. 高德地图Web服务Key需要单独申请
+# 4. 首次运行需要先安装Python依赖
+#

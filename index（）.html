@@ -1,0 +1,3195 @@
+ <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>智游AI · 华丽旅行故事工坊</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+
+    <!-- 高德地图安全密钥配置（必须在加载API之前） -->
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode:'525861bb46cce0d2c1248b9913af1554'
+        };
+    </script>
+    <!-- 高德地图JS API 2.0 + 完整插件（添加POI搜索） -->
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=a5a982b43d4cb9ae9031358d2410d047&plugin=AMap.Driving,AMap.Walking,AMap.Transfer,AMap.Geocoder,AMap.Scale,AMap.ToolBar,AMap.HawkEye,AMap.MapType,AMap.OverView,AMap.PlaceSearch"></script>
+
+    <style>
+        .bg-primary { background-color: #3B82F6; }
+        .text-primary { color: #3B82F6; }
+        .border-primary { border-color: #3B82F6; }
+        .bg-assistGreen { background-color: #10B981; }
+        .text-assistGreen { color: #10B981; }
+        .bg-assistRed { background-color: #EF4444; }
+        .text-assistRed { color: #EF4444; }
+
+        * {
+            border-radius: 16px !important;
+            transition: all 0.2s ease;
+        }
+        body {
+            background-color: #FDF8ED;
+            background-image: radial-gradient(circle at 10% 20%, rgba(255, 235, 205, 0.4) 2%, transparent 2.5%);
+            background-size: 28px 28px;
+            font-family: 'Inter', sans-serif;
+        }
+        .dark body {
+            background-color: #121212;
+            background-image: radial-gradient(circle at 10% 20%, rgba(255, 215, 150, 0.08) 2%, transparent 2.5%);
+        }
+        .card-hover {
+            transition: transform 0.25s, box-shadow 0.3s;
+        }
+        .card-hover:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 25px -12px rgba(0,0,0,0.15);
+        }
+        .nav-blur {
+            backdrop-filter: blur(16px);
+            background: rgba(255, 248, 235, 0.85);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .dark .nav-blur {
+            background: rgba(18, 18, 18, 0.9);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .page {
+            display: none;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .page.active-page {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+            animation: fadeSlideUp 0.4s ease-out;
+        }
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .nav-link.active-nav::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #3B82F6;
+            border-radius: 6px;
+        }
+        .glass-panel {
+            background: rgba(255,255,245,0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,245,200,0.6);
+        }
+        .dark .glass-panel {
+            background: rgba(30,30,35,0.85);
+            border-color: rgba(255,215,150,0.2);
+        }
+        .float-add-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+            border-radius: 50% !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            cursor: pointer;
+            z-index: 100;
+            transition: transform 0.2s;
+        }
+        .float-add-btn:hover {
+            transform: scale(1.05);
+        }
+        .story-card,
+        .spot-card {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .story-card:hover,
+        .spot-card:hover {
+            transform: scale(1.02);
+        }
+        .ranking-item {
+            border-bottom: 1px dashed #e2e8f0;
+            padding: 8px 0;
+        }
+        .dark .ranking-item {
+            border-bottom-color: #334155;
+        }
+        #mapContainer {
+            height: 400px;
+            border-radius: 20px !important;
+            overflow: hidden;
+        }
+        .tab-btn {
+            border-radius: 40px !important;
+        }
+        #loginModal button,
+        #loginModal .cursor-pointer {
+            position: relative;
+            z-index: 10;
+        }
+        .handbook-detail-photo {
+            aspect-ratio: 4/3;
+            object-fit: cover;
+        }
+        /* 新增手账样式 */
+        .handbook-bg-1 { background: linear-gradient(135deg, #fffbeb, #fef3c7); }
+        .handbook-bg-2 { background: linear-gradient(135deg, #eff6ff, #dbeafe); }
+        .handbook-bg-3 { background: linear-gradient(135deg, #f0fdf4, #dcfce7); }
+        .handbook-card { transition: all 0.3s; }
+        .handbook-card:hover { transform: translateY(-4px); }
+        /* 行程卡片样式 */
+        .plan-card { border-left: 4px solid #3B82F6; }
+    </style>
+</head>
+<body class="transition-colors duration-300 dark:bg-gray-900">
+<nav id="mainNav" class="fixed top-0 left-0 w-full z-50 py-3 transition-all duration-300 nav-blur shadow-sm">
+    <div class="container mx-auto px-5 flex items-center justify-between">
+        <div class="flex items-center gap-2"><i class="fa-solid fa-feather-pointed text-2xl text-primary"></i><span class="text-xl font-title tracking-wide bg-gradient-to-r from-blue-500 to-indigo-600 bg-clip-text text-transparent">智游AI</span></div>
+        <div class="hidden md:flex items-center gap-6">
+            <a href="#" data-page="home" class="nav-link text-gray-700 dark:text-gray-200 hover:text-primary">首页</a>
+            <a href="#" data-page="stories" class="nav-link text-gray-700 dark:text-gray-200 hover:text-primary">📖 故事集</a>
+            <a href="#" data-page="handbook" class="nav-link text-gray-700 dark:text-gray-200 hover:text-primary">🎨 手账工坊</a>
+            <a href="#" data-page="aiplanner" class="nav-link text-gray-700 dark:text-gray-200 hover:text-primary">✨ AI规划师</a>
+            <a href="#" data-page="profile" class="nav-link text-gray-700 dark:text-gray-200 hover:text-primary">👤 个人旅行舱</a>
+        </div>
+        <div class="flex items-center gap-4">
+            <button id="themeSwitch" class="text-xl text-gray-700 dark:text-gray-200"><i class="fa-solid fa-moon"></i></button>
+            <div id="authArea">
+                <button id="loginBtn" onclick="openLoginModal()" class="px-5 py-2 rounded-full border border-primary/40 text-primary hover:bg-primary/10 text-sm font-medium cursor-pointer">登录 / 注册</button>
+                <div id="userProfile" class="hidden items-center gap-2 cursor-pointer relative" onclick="toggleProfileMenu()">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white shadow-md"><i class="fa-solid fa-user-astronaut text-sm"></i></div>
+                    <span id="userNickname" class="text-sm font-medium text-gray-800 dark:text-gray-100">用户</span><i class="fa-solid fa-chevron-down text-xs"></i>
+                </div>
+                <div id="profileMenu" class="absolute top-full right-0 mt-3 w-56 bg-white/90 dark:bg-gray-800/95 backdrop-blur-md rounded-2xl shadow-xl py-2 hidden z-50 border border-gray-200 dark:border-gray-700">
+                    <a href="#" onclick="switchToPage('profile'); closeProfileMenu();" class="block px-5 py-2 text-sm hover:bg-gray-100"><i class="fa-regular fa-calendar mr-2"></i>我的行程</a>
+                    <a href="#" onclick="switchToPage('handbook'); closeProfileMenu();" class="block px-5 py-2 text-sm hover:bg-gray-100"><i class="fa-regular fa-bookmark mr-2"></i>我的手账</a>
+                    <a href="#" onclick="switchToPage('profile'); setTimeout(()=>document.getElementById('expenseSection')?.scrollIntoView({behavior:'smooth'}),100); closeProfileMenu();" class="block px-5 py-2 text-sm hover:bg-gray-100"><i class="fa-regular fa-wallet mr-2"></i>预算记录</a>
+                    <div class="border-t my-1"></div>
+                    <button onclick="handleLogout()" class="w-full text-left px-5 py-2 text-sm text-red-500 hover:bg-gray-100"><i class="fa-solid fa-sign-out-alt mr-2"></i>退出登录</button>
+                </div>
+            </div>
+            <button id="menuBtnMobile" class="md:hidden text-2xl"><i class="fa-solid fa-bars"></i></button>
+        </div>
+    </div>
+</nav>
+
+<main class="pt-20 pb-12">
+    <!-- 首页 -->
+    <div id="page-home" class="page active-page">
+        <div class="relative h-[85vh] flex items-center justify-center overflow-hidden rounded-none">
+            <img src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1920" class="absolute inset-0 w-full h-full object-cover brightness-75">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent"></div>
+            <div class="relative z-10 text-center text-white px-5">
+                <h1 class="text-5xl md:text-7xl mb-5 drop-shadow-2xl">每一次旅行，<br>都是未完待续的故事</h1>
+                <p class="text-lg md:text-2xl mb-8 max-w-2xl mx-auto opacity-90">AI为你编织专属旅途记忆，让灵感与风景相遇</p>
+                <button onclick="switchToPage('aiplanner')" class="bg-white/20 backdrop-blur-sm border border-white/50 px-8 py-4 rounded-full text-xl font-bold hover:bg-white/30 transition-all">✈️ 开启智能规划</button>
+            </div>
+        </div>
+        <div class="container mx-auto px-5 py-16">
+            <div class="grid md:grid-cols-3 gap-8 text-center">
+                <div onclick="switchToPage('aiplanner')" class="glass-panel p-6 rounded-2xl cursor-pointer card-hover"><i class="fa-solid fa-robot text-5xl text-primary mb-3"></i><h3 class="text-xl font-bold">AI行程师</h3><p class="text-gray-600 dark:text-gray-300">根据你的喜好定制独一无二的故事线</p></div>
+                <div onclick="switchToPage('handbook')" class="glass-panel p-6 rounded-2xl cursor-pointer card-hover"><i class="fa-solid fa-journal-whills text-5xl text-green-500 mb-3"></i><h3 class="text-xl font-bold">手账珍藏馆</h3><p class="text-gray-600 dark:text-gray-300">照片+笔记+贴纸，永久封存旅途感动</p></div>
+                <div onclick="switchToPage('aiplanner'); setTimeout(()=>refreshMap(), 100)" class="glass-panel p-6 rounded-2xl cursor-pointer card-hover"><i class="fa-solid fa-map-location-dot text-5xl text-red-500 mb-3"></i><h3 class="text-xl font-bold">灵动地图动线</h3><p class="text-gray-600 dark:text-gray-300">智能串联景点，不走回头路</p></div>
+            </div>
+        </div>
+        <div class="container mx-auto px-5 py-8 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-3xl font-title mb-2 text-center">📝 旅人笔记 · 真实故事</h2>
+            <p class="text-center text-gray-500 mb-8">点击卡片，阅读完整旅途回忆</p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-6" id="storyGridHome"></div>
+        </div>
+        <div class="container mx-auto px-5 py-8 grid md:grid-cols-2 gap-8">
+            <div class="bg-white/60 dark:bg-gray-800/60 rounded-2xl p-5 shadow">
+                <h3 class="text-2xl font-title mb-4 flex items-center"><i class="fa-regular fa-compass text-primary mr-2"></i> 必去景点推荐</h3>
+                <div class="space-y-4" id="spotRecommendList"></div>
+            </div>
+            <div class="bg-white/60 dark:bg-gray-800/60 rounded-2xl p-5 shadow">
+                <h3 class="text-2xl font-title mb-4 flex items-center"><i class="fa-solid fa-fire-flame-curved text-red-500 mr-2"></i> 热门城市排行榜</h3>
+                <div class="space-y-2" id="cityRankingList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 故事集页面 -->
+    <div id="page-stories" class="page">
+        <div class="container mx-auto px-5 py-8">
+            <h2 class="text-4xl font-title mb-3 text-center bg-gradient-to-r from-amber-700 to-blue-500 bg-clip-text text-transparent">🗺️ 旅人的故事集</h2>
+            <p class="text-center text-gray-500 mb-12">每一段路途都值得被倾听</p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8" id="allStoriesGrid"></div>
+        </div>
+        <div class="float-add-btn" onclick="switchToPage('handbook')">
+            <i class="fa-solid fa-plus text-white text-2xl"></i>
+        </div>
+    </div>
+
+    <!-- 景点详情页 -->
+    <div id="page-spot-detail" class="page">
+        <div class="container mx-auto px-5 py-6 max-w-5xl">
+            <button onclick="goBack()" class="mb-4 text-primary flex items-center gap-1 text-lg"><i class="fa-solid fa-arrow-left"></i> 返回首页</button>
+            <div id="spotDetailContent" class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden"></div>
+        </div>
+    </div>
+
+    <!-- 故事详情页 -->
+    <div id="page-story-detail" class="page">
+        <div class="container mx-auto px-5 py-6 max-w-4xl">
+            <button onclick="goBackToStories()" class="mb-4 text-primary flex items-center gap-1 text-lg"><i class="fa-solid fa-arrow-left"></i> 返回故事集</button>
+            <div id="storyDetailContent" class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden"></div>
+        </div>
+    </div>
+
+    <!-- 🔥 升级：手账工坊 -->
+    <div id="page-handbook" class="page">
+        <div class="container mx-auto px-5 max-w-5xl py-6">
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-amber-100">
+                <h2 class="text-3xl font-title mb-2">📒 旅行手账工坊</h2>
+                <p class="text-gray-500 mb-6">把回忆装订成册，永远鲜活</p>
+
+                <!-- 手账编辑器 -->
+                <div id="handbookEditor" class="space-y-5">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="font-bold">手账标题</label>
+                            <input id="handbookTitle" type="text" placeholder="例如：大理的夏天" class="w-full border-2 border-dashed border-gray-300 p-3 rounded-xl bg-transparent">
+                        </div>
+                        <div>
+                            <label class="font-bold">手账标签</label>
+                            <input id="handbookTag" type="text" placeholder="美食/风景/人文/旅行" class="w-full border-2 border-dashed border-gray-300 p-3 rounded-xl bg-transparent">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="font-bold">🎨 背景装饰</label>
+                        <div class="flex gap-3 mt-1">
+                            <span onclick="selectHandbookBg(1)" class="w-8 h-8 rounded-full bg-gradient-to-r from-amber-50 to-yellow-100 cursor-pointer border-2 border-transparent" id="bg1"></span>
+                            <span onclick="selectHandbookBg(2)" class="w-8 h-8 rounded-full bg-gradient-to-r from-blue-50 to-blue-100 cursor-pointer border-2 border-transparent" id="bg2"></span>
+                            <span onclick="selectHandbookBg(3)" class="w-8 h-8 rounded-full bg-gradient-to-r from-green-50 to-green-100 cursor-pointer border-2 border-transparent" id="bg3"></span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="font-bold">📸 上传照片</label>
+                        <div class="border-2 border-dashed p-6 text-center rounded-2xl cursor-pointer hover:border-primary" onclick="document.getElementById('photoInput').click()">
+                            <i class="fa-solid fa-cloud-upload-alt text-3xl text-gray-400"></i>
+                            <p>点击上传</p>
+                            <input id="photoInput" type="file" accept="image/*" multiple hidden onchange="handlePhotoUpload(event)">
+                        </div>
+                        <div id="photoGallery" class="grid grid-cols-3 gap-3 mt-3"></div>
+                    </div>
+
+                    <div>
+                        <label class="font-bold">📝 旅行笔记</label>
+                        <textarea id="handbookNotes" rows="4" class="w-full border-2 border-dashed p-3 rounded-xl" placeholder="记录下那些怦然心动的瞬间..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="font-bold">🎀 装饰贴纸</label>
+                        <div class="flex flex-wrap gap-3 text-3xl">
+                            <span onclick="addSticker('🏖️')" class="cursor-pointer hover:scale-125">🏖️</span>
+                            <span onclick="addSticker('🏔️')">🏔️</span>
+                            <span onclick="addSticker('🍜')">🍜</span>
+                            <span onclick="addSticker('✈️')">✈️</span>
+                            <span onclick="addSticker('📸')">📸</span>
+                            <span onclick="addSticker('🗺️')">🗺️</span>
+                            <span onclick="addSticker('🏯')">🏯</span>
+                            <span onclick="addSticker('🌸')">🌸</span>
+                            <span onclick="addSticker('🚗')">🚗</span>
+                        </div>
+                        <div id="stickerArea" class="min-h-[60px] border-dashed border-2 p-2 mt-2 flex flex-wrap gap-2"></div>
+                    </div>
+
+                    <div class="flex gap-3 flex-wrap">
+                        <button onclick="saveHandbook()" class="bg-amber-800 text-white px-6 py-2 rounded-full flex-1">
+                            <i class="fa-regular fa-floppy-disk"></i> 保存手账
+                        </button>
+                        <button onclick="viewHandbooks()" class="bg-gray-600 text-white px-6 py-2 rounded-full">
+                            <i class="fa-regular fa-folder-open"></i> 我的手账本
+                        </button>
+                        <button onclick="resetHandbookEditor()" class="bg-red-500 text-white px-6 py-2 rounded-full">
+                            <i class="fa-solid fa-rotate-right"></i> 重置
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 手账列表（新增搜索） -->
+                <div id="handbookList" class="hidden mt-8">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-xl">📚 我的手账集</h3>
+                        <div class="flex gap-2">
+                            <input id="handbookSearch" type="text" placeholder="搜索手账" class="border p-1 rounded text-sm" oninput="searchHandbooks()">
+                            <button onclick="closeHandbookList()" class="text-gray-500">✖️ 关闭</button>
+                        </div>
+                    </div>
+                    <div id="handbookGrid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4"></div>
+                </div>
+
+                <!-- 手账详情（新增编辑/导出） -->
+                <div id="handbookDetailView" class="hidden mt-8">
+                    <button onclick="backToHandbookList()" class="mb-4 text-primary flex items-center gap-1">
+                        <i class="fa-solid fa-arrow-left"></i> 返回手账列表
+                    </button>
+                    <div class="flex gap-2 mb-3">
+                        <button id="editHandbookBtn" onclick="editHandbook()" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">
+                            <i class="fa-solid fa-pen"></i> 编辑手账
+                        </button>
+                        <button onclick="exportHandbook()" class="bg-green-500 text-white px-3 py-1 rounded text-sm">
+                            <i class="fa-solid fa-download"></i> 导出图片
+                        </button>
+                        <button onclick="shareHandbook()" class="bg-purple-500 text-white px-3 py-1 rounded text-sm">
+                            <i class="fa-solid fa-share-nodes"></i> 分享手账
+                        </button>
+                        <button onclick="deleteHandbook()" class="bg-red-500 text-white px-3 py-1 rounded text-sm">
+                            <i class="fa-solid fa-trash"></i> 删除手账
+                        </button>
+                    </div>
+                    <div id="handbookDetailContent" class="bg-gray-50 dark:bg-gray-700 rounded-2xl p-6"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   <!-- 🔥 AI规划师 - 极简对话版 -->
+<div id="page-aiplanner" class="page">
+    <div class="container mx-auto px-4 pb-10 max-w-5xl">
+        
+        <!-- 2. 核心工作区：表单 + 预览 -->
+        <div class="glass-panel p-6 rounded-2xl shadow-lg border border-white/20 mb-6">
+            <div class="grid lg:grid-cols-12 gap-6">
+                
+                <!-- 左侧：对话式互动表单 (5列) -->
+                <div class="lg:col-span-5 space-y-5">
+                    <!-- 目的地 -->
+                    <div class="group">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                            <span class="text-lg">🏙️</span> 想去哪里？
+                        </label>
+                        <div class="relative">
+                            <input id="cityInput" class="w-full px-4 py-3.5 pl-11 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all text-base placeholder:text-gray-400" placeholder="输入城市名，或选择下方热门..." value="" autocomplete="off">
+                            <i class="fa-solid fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                            <div id="citySuggestions" class="hidden absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 overflow-hidden">
+                                <div class="p-2 text-xs text-gray-400 font-medium">猜你想去</div>
+                                <div class="flex flex-wrap gap-2 p-2 pt-0">
+                                    <button onclick="setCity('成都')" class="px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg text-sm hover:bg-orange-100 transition-colors">🐼 成都</button>
+                                    <button onclick="setCity('大理')" class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm hover:bg-blue-100 transition-colors">🌊 大理</button>
+                                    <button onclick="setCity('三亚')" class="px-3 py-1.5 bg-cyan-50 text-cyan-700 rounded-lg text-sm hover:bg-cyan-100 transition-colors">🏖️ 三亚</button>
+                                    <button onclick="setCity('西安')" class="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-sm hover:bg-amber-100 transition-colors">🏯 西安</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <span class="text-xs text-gray-400 leading-6">热门：</span>
+                            <button onclick="setCity('重庆')" class="text-xs text-gray-500 hover:text-blue-600 transition-colors leading-6">重庆</button>
+                            <button onclick="setCity('厦门')" class="text-xs text-gray-500 hover:text-blue-600 transition-colors leading-6">厦门</button>
+                            <button onclick="setCity('拉萨')" class="text-xs text-gray-500 hover:text-blue-600 transition-colors leading-6">拉萨</button>
+                            <button onclick="setCity('伊犁')" class="text-xs text-gray-500 hover:text-blue-600 transition-colors leading-6">伊犁</button>
+                        </div>
+                    </div>
+
+                    <!-- 时间 & 预算 & 人数 -->
+                    <div class="grid grid-cols-12 gap-3">
+                        <div class="col-span-5">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                                <span class="text-base">📅</span> 出发日期
+                            </label>
+                            <input id="startDate" type="date" class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all text-base">
+                        </div>
+                        <div class="col-span-4">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                                <span class="text-base">💰</span> 总预算 (元)
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm">¥</span>
+                                <input id="budgetSel" type="number" min="500" step="100" value="5000" class="w-full pl-7 pr-2 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all text-sm placeholder:text-gray-400">
+                            </div>
+                        </div>
+                        <div class="col-span-3">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                                <span class="text-base">👥</span> 人数
+                            </label>
+                            <input id="peopleCount" type="number" min="1" max="20" value="2" class="w-full px-3 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all text-sm font-medium">
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1.5 ml-1">💡 小游会根据预算和人数智能匹配食宿交通</p>
+
+                    <!-- 天数滑轨 -->
+                    <div>
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                <span class="text-lg">⏱️</span> 打算玩几天？
+                            </label>
+                            <span id="dayFeedback" class="text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full transition-all duration-200">5天 · 刚刚好 ✨</span>
+                        </div>
+                        <div class="relative py-2">
+                            <input type="range" id="dayRange" min="1" max="15" value="5" class="w-full h-3 bg-gray-200 dark:bg-gray-600 rounded-full appearance-none cursor-pointer accent-blue-600 hover:accent-blue-500 transition-all outline-none focus:outline-none" style="-webkit-ppearance: none;">
+                            <style>
+                                #dayRange::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; background: linear-gradient(135deg, #2563eb, #4f46e5); border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(37,99,235,0.4); cursor: grab; margin-top: -6px; }
+                                #dayRange::-moz-range-thumb { width: 24px; height: 24px; background: linear-gradient(135deg, #2563eb, #4f46e5); border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(37,99,235,0.4); cursor: grab; }
+                                #dayRange::-webkit-slider-runnable-track { height: 12px; border-radius: 999px; }
+                                #dayRange:active::-webkit-slider-thumb { cursor: grabbing; transform: scale(1.15); }
+                            </style>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-400 mt-1 px-1"><span>1天</span><span>5天</span><span>10天</span><span>15天</span></div>
+                        <div class="flex gap-2 mt-3">
+                            <button onclick="setDays(3)" class="day-quick-btn px-3 py-1.5 rounded-lg text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-900/40 transition-all">3天小长假</button>
+                            <button onclick="setDays(5)" class="day-quick-btn px-3 py-1.5 rounded-lg text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 font-medium transition-all">5天刚好</button>
+                            <button onclick="setDays(7)" class="day-quick-btn px-3 py-1.5 rounded-lg text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-900/40 transition-all">7天深度游</button>
+                            <button onclick="setDays(10)" class="day-quick-btn px-3 py-1.5 rounded-lg text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-900/40 transition-all">10天长假</button>
+                        </div>
+                    </div>
+
+                    <!-- 偏好标签 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                            <span class="text-lg">❤️</span> 这次旅行最期待什么？<span class="text-xs text-gray-400 font-normal ml-1">(可多选)</span>
+                        </label>
+                        <div class="flex flex-wrap gap-2.5">
+                            <label class="cursor-pointer select-none"><input type="checkbox" class="pref-check hidden peer" value="美食" checked><span class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm border border-orange-200 bg-orange-50 text-orange-700 peer-checked:bg-orange-500 peer-checked:text-white peer-checked:border-orange-500 peer-checked:shadow-md peer-checked:shadow-orange-500/20 transition-all duration-200 hover:scale-105 active:scale-95">🍜 吃遍街头巷尾</span></label>
+                            <label class="cursor-pointer select-none"><input type="checkbox" class="pref-check hidden peer" value="自然"><span class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm border border-green-200 bg-green-50 text-green-700 peer-checked:bg-green-500 peer-checked:text-white peer-checked:border-green-500 peer-checked:shadow-md peer-checked:shadow-green-500/20 transition-all duration-200 hover:scale-105 active:scale-95">🌿 拥抱山川湖海</span></label>
+                            <label class="cursor-pointer select-none"><input type="checkbox" class="pref-check hidden peer" value="历史"><span class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm border border-amber-200 bg-amber-50 text-amber-700 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 peer-checked:shadow-md peer-checked:shadow-amber-500/20 transition-all duration-200 hover:scale-105 active:scale-95">🏛️ 穿越千年时光</span></label>
+                            <label class="cursor-pointer select-none"><input type="checkbox" class="pref-check hidden peer" value="摄影"><span class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm border border-pink-200 bg-pink-50 text-pink-700 peer-checked:bg-pink-500 peer-checked:text-white peer-checked:border-pink-500 peer-checked:shadow-md peer-checked:shadow-pink-500/20 transition-all duration-200 hover:scale-105 active:scale-95">📸 记录美好瞬间</span></label>
+                            <label class="cursor-pointer select-none"><input type="checkbox" class="pref-check hidden peer" value="亲子"><span class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm border border-purple-200 bg-purple-50 text-purple-700 peer-checked:bg-purple-500 peer-checked:text-white peer-checked:border-purple-500 peer-checked:shadow-md peer-checked:shadow-purple-500/20 transition-all duration-200 hover:scale-105 active:scale-95">👨‍👩‍👧 亲子欢乐时光</span></label>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="flex gap-3 pt-3">
+                        <button onclick="generatePlanWithAI()" class="flex-1 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-lg relative overflow-hidden group">
+                            <span class="relative z-10 flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles"></i> 让小游开始规划</span>
+                            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                        </button>
+                        
+                        <button onclick="saveCurrentPlan()" class="px-4 py-4 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 hover:text-blue-600 transition-all" title="保存"><i class="fa-solid fa-bookmark text-lg"></i></button>
+                        <button onclick="exportPlanPDF()" class="px-4 py-4 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 hover:text-purple-600 transition-all" title="导出PDF"><i class="fa-solid fa-file-pdf text-lg"></i></button>
+                    </div>
+                </div>
+
+                <!-- 右侧：行程预览 (7列) -->
+                <div class="lg:col-span-7">
+                    <div id="planPreview" class="bg-gray-50 dark:bg-gray-800/80 rounded-2xl p-5 h-full min-h-[450px] max-h-[550px] overflow-auto border border-dashed border-gray-300 dark:border-gray-600">
+                        <div id="previewEmpty" class="flex flex-col items-center justify-center h-full text-center py-10">
+                            <div class="text-5xl mb-4 opacity-60">🗺️</div>
+                            <p class="text-gray-500 dark:text-gray-400 font-medium">你的专属行程蓝图</p>
+                            <p class="text-xs text-gray-400 mt-2 max-w-[220px]">填写左侧信息后点击生成，AI 将呈现每日详细安排与地图动线</p>
+                        </div>
+                        <div id="loadProcess" class="hidden flex flex-col items-center justify-center h-full py-10">
+                            <div class="relative w-16 h-16 mb-4">
+                                <div class="absolute inset-0 border-4 border-blue-200 dark:border-blue-900 rounded-full"></div>
+                                <div class="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                <div class="absolute inset-0 flex items-center justify-center text-xl">🧠</div>
+                            </div>
+                            <p class="text-blue-600 dark:text-blue-400 font-medium animate-pulse">小游正在规划中...</p>
+                            <p class="text-xs text-gray-400 mt-2">查询天气 · 匹配景点 · 编排路线</p>
+                            <div class="mt-4 w-48 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full animate-[progress_2s_ease-in-out_infinite]" style="width:70%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 动态地图区 -->
+        <div id="mapPanel" class="glass-panel p-5 rounded-2xl hidden">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-lg flex items-center gap-2">🗺️ 行程动态地图 <span class="text-xs font-normal text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">基于行程自动生成</span></h3>
+                <div class="flex gap-2">
+                    <!-- 天数按钮 -->
+                    <div id="dayButtons" class="flex gap-2">
+                    </div>
+                    <button onclick="clearMapRoute()" class="px-3 py-1 text-xs bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300 rounded-full hover:bg-red-200">
+                        🗑️ 清除
+                    </button>
+                    <button onclick="refreshMap()" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition-colors flex items-center gap-1">
+                        <i class="fa-solid fa-rotate-right"></i> 刷新
+                    </button>
+                </div>
+            </div>
+            <!-- 地图容器 -->
+            <div id="mapContainer" class="w-full h-[400px] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 relative">
+                <!-- 加载覆盖层 -->
+                <div id="mapLoadingOverlay" class="absolute inset-0 bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center z-10">
+                    <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <div id="mapLoadingText" class="text-blue-600 dark:text-blue-400 font-medium">🗺️ 正在加载地图...</div>
+                    <div id="mapLoadingDetail" class="text-xs text-gray-500 mt-2">正在解析行程地点</div>
+                </div>
+            </div>
+            <!-- 路线图例 -->
+            <div id="mapLegend" class="mt-3 flex flex-wrap gap-3 text-xs text-gray-600 dark:text-gray-300">
+                <div class="flex items-center gap-1"><span class="w-4 h-1 bg-[#3B82F6] rounded"></span> 第1天</div>
+                <div class="flex items-center gap-1"><span class="w-4 h-1 bg-[#10B981] rounded"></span> 第2天</div>
+                <div class="flex items-center gap-1"><span class="w-4 h-1 bg-[#F59E0B] rounded"></span> 第3天</div>
+                <div class="flex items-center gap-1"><span class="w-4 h-1 bg-[#EF4444] rounded"></span> 第4天</div>
+                <div class="flex items-center gap-1"><span class="w-4 h-1 bg-[#8B5CF6] rounded"></span> 第5天</div>
+                <div class="flex items-center gap-1"><span class="w-4 h-1 bg-gray-400 rounded"></span> 路线连接</div>
+            </div>
+            <!-- 地点列表 -->
+            <div id="locationList" class="mt-3 hidden">
+                <div class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">📍 行程地点</div>
+                <div id="locationListContent" class="space-y-1 max-h-32 overflow-y-auto"></div>
+            </div>
+            <!-- 路线详情面板 -->
+            <div id="routePanel" class="mt-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 overflow-hidden hidden">
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 text-white">
+                            <i class="fa-solid fa-route"></i>
+                            <span class="font-bold">导航路线详情</span>
+                            <span id="routeDayBadge" class="text-xs bg-white/20 px-2 py-0.5 rounded-full">第1天</span>
+                        </div>
+                        <button onclick="document.getElementById('routePanel').classList.add('hidden')" class="text-white/80 hover:text-white">✖️</button>
+                    </div>
+                    <div class="flex items-center gap-4 mt-2 text-white/80 text-sm">
+                        <span id="routeDistance">距离: --</span>
+                        <span id="routeDuration">时间: --</span>
+                    </div>
+                </div>
+                <div id="routeStepsContainer" class="max-h-48 overflow-y-auto p-3 space-y-2"></div>
+            </div>
+            
+            <!-- 提示信息 -->
+            <p class="text-xs text-gray-400 mt-2">💡 点击标记点查看详情 | 滚动缩放 | 拖动平移</p>
+        </div>
+    </div>
+</div>
+
+<!-- 景点详情弹窗 -->
+<div id="spotDetailModal" class="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4" style="display:none;">
+    <div class="bg-white dark:bg-gray-800 max-w-lg w-full rounded-2xl shadow-2xl overflow-hidden">
+        <div class="relative h-48 bg-gradient-to-br from-blue-400 to-purple-500">
+            <img id="spotDetailImage" src="https://picsum.photos/seed/spot/600/400" alt="景点图片" class="w-full h-full object-cover opacity-80">
+            <button onclick="closeSpotDetailModal()" class="absolute top-4 right-4 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white">✖️</button>
+            <div id="spotDetailRatingBadge" class="absolute bottom-4 right-4 bg-yellow-500 text-white px-2 py-1 rounded-full text-sm flex items-center gap-1">
+                ⭐ <span id="spotDetailRating">--</span>
+            </div>
+        </div>
+        <div class="p-6">
+            <div class="flex items-start justify-between mb-3">
+                <h3 id="spotDetailName" class="text-2xl font-bold"></h3>
+                <span id="spotDetailType" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full"></span>
+            </div>
+            <div class="space-y-3">
+                <div class="flex items-start gap-2">
+                    <i class="fa-solid fa-map-marker text-gray-400 mt-0.5"></i>
+                    <span id="spotDetailAddress"></span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <i class="fa-solid fa-clock text-gray-400 mt-0.5"></i>
+                    <span id="spotDetailTime"></span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <i class="fa-solid fa-ticket text-gray-400 mt-0.5"></i>
+                    <span id="spotDetailPrice"></span>
+                </div>
+            </div>
+            <div class="mt-4 pt-4 border-t">
+                <h4 class="font-bold mb-2">📝 景点简介</h4>
+                <p id="spotDetailDesc" class="text-sm text-gray-600 dark:text-gray-400"></p>
+            </div>
+            <div class="mt-4 flex gap-3">
+                <button onclick="viewSpotOnMap()" class="flex-1 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-map"></i> 在地图查看
+                </button>
+                <button onclick="navigateToSpot()" class="flex-1 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-navigation"></i> 导航前往
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- 个人中心 -->
+    <div id="page-profile" class="page">
+        <div class="container mx-auto px-5 max-w-6xl py-6">
+            <div class="bg-gradient-to-br from-amber-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-3xl p-6 shadow-lg">
+                <div class="flex justify-between items-center flex-wrap"><h2 class="text-3xl font-title">🧳 我的旅行舱</h2><button onclick="openPreferences()" class="bg-blue-500/20 px-4 py-1 rounded-full text-sm"><i class="fa-regular fa-sliders"></i> 偏好设置</button></div>
+                <div class="mt-6"><h3 class="font-bold text-xl">📌 我的行程</h3><div id="tripsListProfile" class="grid md:grid-cols-2 gap-4 mt-2">暂无行程</div></div>
+                <div id="expenseSection" class="mt-8 border-t pt-5"><h3 class="font-bold text-xl">💰 旅途记账本</h3><div class="flex gap-2 flex-wrap mt-2"><input id="expenseDesc" placeholder="消费项目" class="border p-2 rounded"><input id="expenseAmount" type="number" placeholder="金额" class="border p-2 w-28"><select id="expenseCategory" class="border p-2 rounded"><option>交通</option><option>住宿</option><option>餐饮</option><option>门票</option></select><button onclick="addExpense()" class="bg-green-600 text-white px-4 rounded-full">➕ 添加</button></div><div id="expenseListProfile" class="mt-4 max-h-64 overflow-auto"></div></div>
+                <div class="mt-8 border-t pt-5"><h3 class="font-bold text-xl">🗳️ 同行投票站</h3><button onclick="createVote()" class="bg-purple-600 text-white px-5 py-1 rounded-full mb-2">➕ 创建新投票</button><div id="voteListProfile" class="space-y-3"></div></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="bg-gray-900 text-white/80 py-8 text-center text-sm mt-12"><div class="container">© 2026 智游AI · 让每一次出发都成为故事</div></footer>
+<button id="backTop" class="fixed bottom-8 right-8 bg-blue-500 text-white w-10 h-10 rounded-full hidden shadow-lg"><i class="fa-solid fa-arrow-up"></i></button>
+
+<!-- 登录弹窗 -->
+<div id="loginModal" class="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm hidden items-center justify-center" style="display:none;">
+    <div class="bg-white dark:bg-gray-800 max-w-md w-full p-6 rounded-2xl shadow-2xl">
+        <div class="flex justify-between"><h2 class="font-title text-2xl">✈️ 智游AI·登舱</h2><button onclick="closeLoginModal()">✖️</button></div>
+        <div class="flex gap-4 mt-3">
+            <button id="loginTabBtn" class="flex-1 py-2 bg-blue-500 text-white rounded-full cursor-pointer" onclick="switchAuthTab('login')">登录</button>
+            <button id="registerTabBtn" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer" onclick="switchAuthTab('register')">注册</button>
+        </div>
+        <div id="loginPane">
+            <input id="loginAccount" placeholder="账号" class="w-full border p-2 mt-4 rounded">
+            <input id="loginPassword" type="password" placeholder="密码" class="w-full border p-2 mt-2 rounded">
+            <div class="flex justify-between mt-2"><label><input type="checkbox" id="rememberMe"> 记住我</label><button onclick="showForgetPassword()" class="text-primary text-sm">忘记密码?</button></div>
+            <button onclick="handleLogin()" class="w-full bg-amber-800 text-white py-2 rounded-full mt-4 cursor-pointer">盖章登录</button>
+        </div>
+        <div id="registerPane" class="hidden">
+            <input id="regNickname" placeholder="昵称" class="w-full border p-2 mt-2 rounded">
+            <input id="regAccount" placeholder="账号" class="w-full border p-2 mt-2 rounded">
+            <input id="regPassword" type="password" placeholder="密码" class="w-full border p-2 mt-2 rounded">
+            <input id="regConfirmPassword" type="password" placeholder="确认密码" class="w-full border p-2 mt-2 rounded">
+            <div class="mt-2"><p class="text-sm">出行偏好（可多选）</p><div class="flex flex-wrap gap-2"><label><input type="checkbox" class="pref-reg" value="美食">美食</label><label><input type="checkbox" class="pref-reg" value="历史">历史</label><label><input type="checkbox" class="pref-reg" value="自然">自然</label><label><input type="checkbox" class="pref-reg" value="摄影">摄影</label></div></div>
+            <button onclick="handleRegister()" class="w-full bg-amber-800 text-white py-2 rounded-full mt-4 cursor-pointer">注册新旅人</button>
+        </div>
+        <button onclick="enterAsGuest()" class="w-full mt-3 border-dashed border py-2 text-gray-500 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">游客体验</button>
+    </div>
+</div>
+
+<!-- 酒店选择弹窗 -->
+
+
+
+
+<script>
+    // 核心数据与变量
+    const API_BASE = 'http://localhost:8002'; // 后端API地址
+    let currentPlanData = null, map = null, markers = [], routeLines = [], infoWindows = [], currentUser = null, isGuest = false;
+    let allLocations = []; // 收集所有地点用于显示列表
+    let uploadedPhotos = [], addedStickers = [], selectedBg = 1, currentEditHandbookId = null;
+    const STORAGE_KEY_USERS = 'zhiyou_users', STORAGE_KEY_CURRENT_USER = 'zhiyou_current_user', STORAGE_KEY_REMEMBER = 'zhiyou_remember';
+    
+    // 性能优化相关
+    const geocodeCache = new Map(); // 地理编码缓存
+    let refreshMapTimeout = null; // 刷新地图防抖定时器
+    
+    // 防抖函数
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // 带防抖的地图刷新
+    const debouncedRefreshMap = debounce(() => {
+        refreshMap();
+    }, 500);
+
+    // 使用高德地图API动态获取城市坐标（带缓存）
+    async function getCityCenter(cityName) {
+        // 检查缓存
+        if (geocodeCache.has(cityName)) {
+            console.log(`⚡ 使用缓存获取城市 ${cityName} 坐标`);
+            return geocodeCache.get(cityName);
+        }
+        
+        return new Promise((resolve) => {
+            console.log(`🔍 获取城市中心坐标: ${cityName}`);
+            
+            if (typeof AMap === 'undefined') {
+                console.error('❌ AMap未加载');
+                resolve([104.0668, 30.6666]);
+                return;
+            }
+            
+            AMap.plugin('AMap.Geocoder', function() {
+                console.log(`✅ Geocoder插件加载完成，开始获取城市坐标`);
+                
+                const geocoder = new AMap.Geocoder({
+                    city: cityName
+                });
+                
+                geocoder.getLocation(cityName, function(status, result) {
+                    if (status === 'complete' && result.geocodes && result.geocodes.length > 0) {
+                        const location = result.geocodes[0].location;
+                        const coords = [location.getLng(), location.getLat()];
+                        // 缓存结果
+                        geocodeCache.set(cityName, coords);
+                        console.log(`✅ 获取城市 ${cityName} 中心坐标成功: ${coords}`);
+                        resolve(coords);
+                    } else {
+                        console.warn(`⚠️ 获取城市 ${cityName} 坐标失败，使用默认坐标（成都），状态: ${status}`);
+                        resolve([104.0668, 30.6666]);
+                    }
+                });
+            });
+        });
+    }
+    
+    // 检查高德地图API是否已加载完成
+    function checkAMapLoaded() {
+        return new Promise((resolve) => {
+            if (typeof AMap !== 'undefined') {
+                resolve(true);
+                return;
+            }
+            // 等待最多10秒
+            let attempts = 0;
+            const interval = setInterval(() => {
+                attempts++;
+                if (typeof AMap !== 'undefined') {
+                    clearInterval(interval);
+                    resolve(true);
+                } else if (attempts >= 20) {
+                    clearInterval(interval);
+                    console.error('❌ 高德地图API加载超时');
+                    resolve(false);
+                }
+            }, 500);
+        });
+    }
+
+    // 根据地址获取精确坐标（使用高德地图API）
+    async function getCoordinates(address) {
+        // 先检查缓存
+        const cacheKey = address.toLowerCase();
+        if (coordsCache[cacheKey]) {
+            console.log(`🔄 使用缓存坐标: ${address}`);
+            return coordsCache[cacheKey];
+        }
+        
+        // 确保高德地图已加载
+        const loaded = await checkAMapLoaded();
+        if (!loaded) {
+            console.error(`❌ 高德地图未加载，无法获取坐标: ${address}`);
+            return null;
+        }
+
+        const city = currentPlanData?.city || '';
+        
+        // 构建多个搜索词尝试
+        const searchQueries = buildSearchQueries(address, city);
+        
+        // 尝试每个搜索词
+        for (let i = 0; i < searchQueries.length; i++) {
+            const searchAddress = searchQueries[i];
+            console.log(`🔍 搜索坐标 [${i + 1}/${searchQueries.length}]: ${searchAddress}`);
+            
+            const result = await tryGetCoordinates(searchAddress, city);
+            if (result) {
+                console.log(`✅ 找到坐标: ${searchAddress} → ${result.lng}, ${result.lat}`);
+                coordsCache[cacheKey] = result;
+                return result;
+            }
+        }
+        
+        console.warn(`❌ 所有搜索词都无法找到坐标: ${address}`);
+        return null;
+    }
+
+    // 构建搜索词列表
+    function buildSearchQueries(address, city) {
+        const queries = [];
+        
+        // 原始地址
+        queries.push(address);
+        
+        // 添加城市前缀
+        if (city && !address.includes(city)) {
+            queries.push(city + address);
+            queries.push(city + '市' + address);
+            queries.push(city + '区' + address);
+        }
+        
+        // 尝试去掉地点类型后缀
+        const suffixes = ['景区', '公园', '广场', '酒店', '餐厅', '美食', '街', '路', '大厦', '中心'];
+        suffixes.forEach(suffix => {
+            if (address.endsWith(suffix)) {
+                const shorter = address.slice(0, -suffix.length);
+                queries.push(shorter);
+                if (city && !shorter.includes(city)) {
+                    queries.push(city + shorter);
+                }
+            }
+        });
+        
+        // 尝试只保留主要名称（去掉括号内容）
+        const cleanAddress = address.replace(/[（(].*?[）)]/g, '').trim();
+        if (cleanAddress !== address && cleanAddress.length > 0) {
+            queries.push(cleanAddress);
+            if (city && !cleanAddress.includes(city)) {
+                queries.push(city + cleanAddress);
+            }
+        }
+        
+        // 去重
+        return [...new Set(queries)];
+    }
+
+    // 单次尝试获取坐标（带超时）
+    function tryGetCoordinates(searchAddress, city) {
+        return Promise.race([
+            new Promise((resolve) => {
+                const geocoder = new AMap.Geocoder({
+                    city: city || '',
+                    radius: 5000
+                });
+                
+                geocoder.getLocation(searchAddress, function(status, result) {
+                    if (status === 'complete' && result.geocodes && result.geocodes.length > 0) {
+                        const location = result.geocodes[0].location;
+                        resolve({ lng: location.getLng(), lat: location.getLat() });
+                    } else {
+                        resolve(null);
+                    }
+                });
+            }),
+            new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve(null);
+                }, 2000);  // 缩短超时时间到2秒
+            })
+        ]);
+    }
+
+    // 使用高德POI搜索API获取真实酒店数据
+    // 从API获取数据
+    let storiesData = [];
+    let spotsData = [];
+    let cityRankingData = [];
+    
+    async function fetchDataFromAPI() {
+        try {
+            // 并行获取所有数据
+            const [storiesRes, spotsRes, rankingRes] = await Promise.all([
+                fetch('http://localhost:8000/api/stories'),
+                fetch('http://localhost:8000/api/spots?city=成都'),
+                fetch('http://localhost:8000/api/city-ranking')
+            ]);
+            
+            // 检查所有请求是否成功
+            if (!storiesRes.ok || !spotsRes.ok || !rankingRes.ok) {
+                throw new Error(`API请求失败: stories=${storiesRes.status}, spots=${spotsRes.status}, ranking=${rankingRes.status}`);
+            }
+            
+            const storiesJson = await storiesRes.json();
+            const spotsJson = await spotsRes.json();
+            const rankingJson = await rankingRes.json();
+            
+            // 检查数据是否有效
+            if (!storiesJson.data || !rankingJson.data) {
+                throw new Error('API返回数据格式错误');
+            }
+            
+            storiesData = storiesJson.data?.stories || [];
+            cityRankingData = rankingJson.data?.ranking || [];
+            
+            // 构建景点数据结构
+            const cities = ['成都', '大理', '厦门', '西安', '重庆'];
+            spotsData = await Promise.all(cities.map(async city => {
+                const res = await fetch(`http://localhost:8000/api/spots?city=${encodeURIComponent(city)}`);
+                if (!res.ok) {
+                    throw new Error(`获取${city}景点数据失败`);
+                }
+                const json = await res.json();
+                const spots = json.data?.spots || [];
+                if (!spots.length) {
+                    throw new Error(`未获取到${city}景点数据`);
+                }
+                return { 
+                    city, 
+                    spots: spots.map(s => ({
+                        name: s.name,
+                        desc: s.address || s.type || '暂无详细信息',
+                        img: `https://picsum.photos/seed/${city}/400/300`
+                    })) 
+                };
+            }));
+            
+            // 初始化页面
+            initPage();
+        } catch (error) {
+            console.error('获取数据失败:', error);
+            // 显示错误信息，阻止页面加载
+            alert(`数据加载失败: ${error.message}\n\n请确保后端API服务已启动。\n提示: 运行 "python API_main.py" 启动服务`);
+            return;
+        }
+    }
+    
+    // 初始化页面：导航、故事、景点、排行榜、用户状态、地图滑动提示
+    function initPage() {
+        renderHomeStories();
+        renderSpotList();
+        renderRanking();
+        renderAllStories();
+        renderExpensesList();
+        renderVotes();
+        loadProfileTrips();
+
+        // 天数滑块：实时回显到 UI
+        const dayRange = document.getElementById('dayRange');
+        const dayFeedbackTxt = document.getElementById('dayFeedback');
+        if (dayRange && dayFeedbackTxt) {
+            dayRange.addEventListener('input', () => {
+                dayFeedbackTxt.textContent = `${dayRange.value}天 · 刚刚好 ✨`;
+            });
+        }
+
+        // 移动端菜单占位
+        const menuBtnMobile = document.getElementById('menuBtnMobile');
+        if (menuBtnMobile) {
+            menuBtnMobile.addEventListener('click', () => {
+                alert('移动端菜单（可扩展）');
+            });
+        }
+    }
+
+    function renderHomeStories() {
+        document.getElementById('storyGridHome').innerHTML = storiesData.map(s => `
+                <div class="story-card bg-white dark:bg-gray-800 rounded-2xl shadow-md p-3" onclick="openStoryDetail(${s.id})">
+                    <img src="${s.cover}" class="h-32 w-full object-cover rounded-xl">
+                    <div class="mt-2"><div class="font-bold text-sm">${s.title}</div><p class="text-xs text-gray-500">${s.content.substring(0,40)}</p>
+                    <div class="flex gap-1 mt-1">${s.tags.map(t=>`<span class="bg-blue-100 text-blue-800 text-xs px-1 py-0.5 rounded-full">${t}</span>`).join('')}</div></div>
+                </div>`).join('');
+    }
+
+    function renderAllStories() {
+        document.getElementById('allStoriesGrid').innerHTML = storiesData.map(s => `
+                <div class="story-card bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden" onclick="openStoryDetail(${s.id})">
+                    <img src="${s.cover}" class="h-56 w-full object-cover">
+                    <div class="p-4"><h3 class="font-bold text-xl">${s.title}</h3><p class="text-gray-500 text-sm">${s.author} · ${s.location}</p>
+                    <p class="mt-2">${s.content}</p><div class="flex gap-2 mt-3">${s.tags.map(t=>`<span class="bg-gray-200 px-2 py-1 rounded-full text-xs">${t}</span>`).join('')}</div></div>
+                </div>`).join('');
+    }
+
+    function openStoryDetail(id) {
+        let story = storiesData.find(s => s.id === id);
+        if (story) {
+            document.getElementById('storyDetailContent').innerHTML = `
+                <div class="p-6"><img src="${story.cover}" class="w-full h-80 object-cover rounded-2xl">
+                    <h1 class="text-3xl font-bold mt-4">${story.title}</h1><p class="text-gray-500">${story.author} · ${story.location}</p>
+                    <div class="flex gap-2 my-3">${story.tags.map(t=>`<span class="bg-blue-500/20 px-3 py-1 rounded-full">${t}</span>`).join('')}</div>
+                    <p class="whitespace-pre-line">${story.fullContent}</p>
+                    <div class="grid grid-cols-2 gap-3 mt-5">${story.images.map(img=>`<img src="${img}" class="rounded-xl">`).join('')}</div>
+                </div>`;
+            switchToPage('story-detail');
+        }
+    }
+
+    function goBackToStories() { switchToPage('stories'); }
+    
+    function renderSpotList() {
+        document.getElementById('spotRecommendList').innerHTML = spotsData.map(city => `
+                <div class="spot-card flex items-center gap-3 border-b pb-3" onclick="openSpotDetail('${city.city}')">
+                    <img src="${city.spots[0].img}" class="w-16 h-16 object-cover rounded-xl">
+                    <div><div class="font-bold">${city.city}</div><p class="text-sm text-gray-500">${city.spots[0].name} · ${city.spots[1]?.name || ''}</p>
+                    <p class="text-xs text-gray-400 mt-1 line-clamp-2">${city.spots[0].desc.substring(0,45)}...</p></div>
+                    <i class="fa-solid fa-chevron-right ml-auto text-gray-400"></i>
+                </div>`).join('');
+    }
+
+    function openSpotDetail(cityName) {
+        let cityData = spotsData.find(c => c.city === cityName);
+        if (cityData) {
+            document.getElementById('spotDetailContent').innerHTML = `<div class="p-6"><h2 class="text-3xl font-title mb-4">🏞️ ${cityData.city} 必游景点</h2>
+                <div class="grid gap-6">${cityData.spots.map(spot=>`<div class="flex gap-4 border-b pb-4"><img src="${spot.img}" class="w-32 h-32 object-cover rounded-xl"><div><h3 class="font-bold text-xl">${spot.name}</h3><p class="text-gray-600">${spot.desc}</p></div></div>`).join('')}</div></div>`;
+            switchToPage('spot-detail');
+        }
+    }
+
+    function goBack() { switchToPage('home'); }
+
+    function renderRanking() {
+        const rankingHtml = cityRankingData.slice(0, 5).map(item => `
+            <div class="ranking-item flex justify-between">
+                <span><span class="font-bold text-lg ${item.rank === 1 ? 'text-blue-500' : ''}">${item.rank}</span> ${item.city}</span>
+                <span>${item.feature}</span>
+                <span>🔥${(item.hot / 1000).toFixed(1)}w</span>
+            </div>
+        `).join('');
+        document.getElementById('cityRankingList').innerHTML = rankingHtml || `
+                <div class="ranking-item flex justify-between"><span><span class="font-bold text-lg text-blue-500">1</span> 成都</span><span>🐼 熊猫基地</span><span>🔥9.8w</span></div>
+                <div class="ranking-item flex justify-between"><span><span class="font-bold text-lg">2</span> 大理</span><span>🌊 洱海</span><span>🔥8.2w</span></div>
+                <div class="ranking-item flex justify-between"><span><span class="font-bold text-lg">3</span> 厦门</span><span>🏖️ 鼓浪屿</span><span>🔥7.5w</span></div>
+                <div class="ranking-item flex justify-between"><span><span class="font-bold text-lg">4</span> 西安</span><span>🏯 兵马俑</span><span>🔥6.9w</span></div>
+                <div class="ranking-item flex justify-between"><span><span class="font-bold text-lg">5</span> 重庆</span><span>🌉 洪崖洞</span><span>🔥6.2w</span></div>`;
+    }
+
+    function switchToPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+        document.getElementById(`page-${pageId}`)?.classList.add('active-page');
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active-nav'));
+        document.querySelector(`[data-page="${pageId}"]`)?.classList.add('active-nav');
+        if (pageId === 'profile') { loadProfileTrips(); renderExpensesList(); renderVotes(); }
+        if (pageId === 'handbook') resetHandbookEditor();
+        if (pageId === 'stories') renderAllStories();
+        if (pageId === 'aiplanner') setTimeout(refreshMap, 200);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    window.switchToPage = switchToPage;
+
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => { e.preventDefault(); let page = link.dataset.page; if (page) switchToPage(page); });
+    });
+
+    // 设置城市
+    function setCity(city) {
+        const input = document.getElementById('cityInput');
+        if(input) {
+            input.value = city;
+            document.getElementById('citySuggestions')?.classList.add('hidden');
+            input.classList.add('ring-2', 'ring-blue-400', 'bg-blue-50');
+            setTimeout(() => input.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50'), 500);
+        }
+    }
+
+    // 天数反馈映射表
+    const dayFeedbackMap = { 1:'1天·说走就走', 2:'2天·周末微度假', 3:'3天·小长假刚好', 4:'4天·不紧不慢', 5:'5天·刚刚好✨', 6:'6天·深度探索', 7:'7天·完整一周深度游' };
+
+    // 更新天数反馈及按钮高亮
+    function updateDayFeedback(days) {
+        document.getElementById('dayNum') && (document.getElementById('dayNum').textContent = days);
+        const fbEl = document.getElementById('dayFeedback');
+        if (fbEl) {
+            fbEl.textContent = dayFeedbackMap[days] || `${days}天·深度漫游模式`;
+            fbEl.classList.add('scale-110');
+            setTimeout(() => fbEl.classList.remove('scale-110'), 150);
+        }
+        document.querySelectorAll('.day-quick-btn').forEach(btn => {
+            const isMatch = parseInt(btn.textContent) === days;
+            btn.classList.toggle('bg-blue-100', isMatch);
+            btn.classList.toggle('text-blue-700', isMatch);
+            btn.classList.toggle('dark:bg-blue-900/40', isMatch);
+            btn.classList.toggle('dark:text-blue-300', isMatch);
+            btn.classList.toggle('font-medium', isMatch);
+            btn.classList.toggle('bg-gray-100', !isMatch);
+            btn.classList.toggle('text-gray-600', !isMatch);
+            btn.classList.toggle('dark:bg-gray-700', !isMatch);
+            btn.classList.toggle('dark:text-gray-300', !isMatch);
+        });
+    }
+
+    // 快捷设置天数
+    function setDays(days) {
+        const range = document.getElementById('dayRange');
+        if (range) { range.value = days; updateDayFeedback(days); }
+    }
+
+    function adjustPeople(delta) {
+        const input = document.getElementById('peopleCount');
+        if (!input) return;
+        const newVal = Math.min(20, Math.max(1, parseInt(input.value || 2) + delta));
+        input.value = newVal;
+    }
+
+    // 绑定事件监听
+    document.addEventListener('DOMContentLoaded', async () => {
+        document.getElementById('dayRange')?.addEventListener('input', function() { updateDayFeedback(parseInt(this.value)); });
+        document.getElementById('cityInput')?.addEventListener('focus', () => document.getElementById('citySuggestions')?.classList.remove('hidden'));
+        document.getElementById('cityInput')?.addEventListener('blur', () => setTimeout(() => document.getElementById('citySuggestions')?.classList.add('hidden'), 200));
+        
+        // 回车键绑定：在任何输入框按回车触发规划
+        const inputElements = ['cityInput', 'startDate', 'budgetSel', 'peopleCount'];
+        inputElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        generatePlanWithAI();
+                    }
+                });
+            }
+        });
+        
+        // 加载数据
+        await fetchDataFromAPI();
+    });
+                                        
+    // 保存规划到历史记录
+    function saveToHistory(planData) {
+        try {
+            // 获取现有历史记录
+            const history = JSON.parse(localStorage.getItem('zhiyou_plan_history') || '[]');
+            
+            // 添加新记录，包含时间戳
+            const historyItem = {
+                ...planData,
+                savedAt: new Date().toISOString(),
+                id: Date.now().toString()
+            };
+            
+            // 添加到历史记录（最多保存10条）
+            history.unshift(historyItem);
+            const trimmedHistory = history.slice(0, 10);
+            
+            // 保存到本地存储
+            localStorage.setItem('zhiyou_plan_history', JSON.stringify(trimmedHistory));
+        } catch (e) {
+            console.error('[History] 保存历史记录失败:', e);
+        }
+    }
+    
+    // AI 规划师 - 真实连接后端大模型
+    async function generatePlanWithAI() {
+        // 1. 获取并验证目的地
+        const cityInput = (document.getElementById('cityInput')?.value || '').trim();
+        
+        // 必填验证：目的地不能为空
+        if (!cityInput) {
+            alert('请输入目的地城市！');
+            document.getElementById('cityInput')?.focus();
+            return;
+        }
+        
+        // 2. 检查是否有历史规划，保存并提醒
+        if (currentPlanData && currentPlanData.city) {
+            // 保存历史记录
+            saveToHistory(currentPlanData);
+            
+            // 提醒用户即将重新生成
+            const cityName = currentPlanData.city;
+            const userConfirmed = window.confirm("检测到您已有" + cityName + "的旅行规划，是否确认重新生成？\n\n原规划将被保存到历史记录中。");
+            
+            if (!userConfirmed) {
+                return;
+            }
+        }
+        
+        // 3. UI 状态切换
+        
+        // 先恢复 planPreview 的原始结构（包含加载动画）
+        const planPreview = document.getElementById('planPreview');
+        if (planPreview) {
+            // 恢复原始HTML结构
+            planPreview.innerHTML = `
+                <div id="previewEmpty" class="hidden flex flex-col items-center justify-center h-full text-center py-10">
+                    <div class="text-5xl mb-4 opacity-60">🗺️</div>
+                    <p class="text-gray-500 dark:text-gray-400 font-medium">你的专属行程蓝图</p>
+                    <p class="text-xs text-gray-400 mt-2 max-w-[220px]">填写左侧信息后点击生成，AI 将呈现每日详细安排与地图动线</p>
+                </div>
+                <div id="loadProcess" class="flex flex-col items-center justify-center h-full py-10">
+                    <div class="relative w-16 h-16 mb-4">
+                        <div class="absolute inset-0 border-4 border-blue-200 dark:border-blue-900 rounded-full"></div>
+                        <div class="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <div class="absolute inset-0 flex items-center justify-center text-xl">🧠</div>
+                    </div>
+                    <p class="text-blue-600 dark:text-blue-400 font-medium animate-pulse">小游正在规划中...</p>
+                    <p class="text-xs text-gray-400 mt-2">查询天气 · 匹配景点 · 编排路线</p>
+                    <div class="mt-4 w-48 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full animate-[progress_2s_ease-in-out_infinite]" style="width:70%"></div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 隐藏地图面板
+        const mapPanel = document.getElementById('mapPanel');
+        if (mapPanel) {
+            mapPanel.classList.add('hidden');
+        }
+
+        try {
+            // 3. 安全获取并强制转换所有输入值
+            const startDateInput = document.getElementById('startDate')?.value || null;
+            
+            // 预算：强制转为整数，并限制在合理范围
+            const rawBudget = parseInt(document.getElementById('budgetSel')?.value);
+            const safeBudget = Number.isNaN(rawBudget) ? 5000 : Math.max(500, Math.min(50000, rawBudget));
+            
+            // 天数：强制转为整数，默认 5 天
+            const rawDays = parseInt(document.getElementById('dayRange')?.value);
+            const safeDays = Number.isNaN(rawDays) ? 5 : Math.max(1, Math.min(30, rawDays));
+            
+            // 偏好：过滤空字符串，确保是纯字符串数组
+            const preferences = Array.from(document.querySelectorAll('.pref-check:checked'))
+                .map(el => (el.value || '').trim())
+                .filter(v => v.length > 0);
+
+            // 4. 【核心】严格按后端 PlanRequest 构造 payload
+            const peopleCount = parseInt(document.getElementById('peopleCount')?.value) || 2;
+            const payload = {
+                destination: cityInput,                     // str，必有值（已验证）
+                days: safeDays,                             // int，1-30
+                budget: safeBudget < 3000 ? "穷游" : (safeBudget >= 10000 ? "奢华" : "舒适"), // str，三选一
+                total_budget: safeBudget,                  // int，真实总预算金额
+                start_date: startDateInput || null,         // str | null
+                preferences: preferences.length > 0 ? preferences : ["美食"], // List[str]，非空
+                people_count: peopleCount                   // int，1-50
+            };
+
+            // 4. 发送请求
+            const response = await fetch('http://localhost:8000/api/generate-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            // 🔥 增强错误处理：读取 FastAPI 返回的详细校验错误
+            if (!response.ok) {
+                let errMsg = `HTTP ${response.status}`;
+                try {
+                    const errData = await response.json();
+                    // FastAPI 422 错误详情在 detail 字段中
+                    if (errData.detail) {
+                        errMsg += ': ' + JSON.stringify(errData.detail);
+                    }
+                } catch {}
+                throw new Error(errMsg);
+            }
+
+            const result = await response.json();
+
+            // 5. 数据适配与渲染
+            currentPlanData = {
+                city: payload.destination,
+                days: payload.days,
+                budget: payload.budget,
+                budgetAmount: safeBudget,
+                startDate: payload.start_date,
+                prefs: payload.preferences,
+                plan: result.data?.itinerary || result.data?.plan || [],
+                locations: []  // 由下一步填充真实坐标
+            };
+
+            // 保存真实数据供前端使用
+            if (result.data?.real_data) {
+                window.currentRealData = result.data.real_data;
+            }
+
+            renderPlanBook(currentPlanData);
+
+            // 检查是否未填写出发日期
+            if (!currentPlanData.startDate) {
+                setTimeout(() => {
+                    alert('温馨提示：您尚未设置出发日期，建议在行程卡片中添加具体日期以便更好地安排行程。');
+                }, 500);
+            }
+
+            // 6. 调用后端 /api/route-planning 获取真实坐标，供地图渲染
+            try {
+                showMapLoading('正在解析行程地点并获取真实坐标...');
+                document.getElementById('mapPanel')?.classList.remove('hidden');
+
+                const routeResp = await fetch('http://localhost:8000/api/route-planning', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        city: payload.destination,
+                        points: [],
+                        itinerary: currentPlanData.plan
+                    })
+                });
+
+                if (routeResp.ok) {
+                    const routeJson = await routeResp.json();
+                    if (routeJson.data?.waypoints && routeJson.data.waypoints.length > 0) {
+                        currentPlanData.locations = routeJson.data.waypoints;
+                        console.log('✅ 路线坐标已获取，共', routeJson.data.waypoints.length, '个地点，其中有效', routeJson.data.valid, '个');
+                    }
+                } else {
+                    console.warn('⚠️ 路线坐标接口未成功，地图将使用前端本地高德 API 自行解析');
+                }
+            } catch (routeErr) {
+                console.warn('⚠️ 路线坐标获取异常：', routeErr);
+            }
+
+            // 7. 最终：渲染地图（优先使用 currentPlanData.locations 中的真实坐标）
+            document.getElementById('loadProcess')?.classList.add('hidden');
+            setTimeout(() => refreshMap(), 200);
+
+        } catch (error) {
+            console.error('❌ 生成行程出错:', error);
+            alert('AI 行程生成失败:\n' + error.message);
+            document.getElementById('loadProcess')?.classList.add('hidden');
+            document.getElementById('previewEmpty')?.classList.remove('hidden');
+        }
+    }
+
+    // 渲染卡片化行程
+    function renderPlanBook(d) {
+        if(!d || !d.plan) return;
+        let html = `
+            <div class="font-bold text-lg mb-3">📖 ${d.city} ${d.days}日游 · ${d.budget}档</div>
+            <div class="text-sm text-gray-500 mb-3">出发日期：${d.startDate || '近期'} | 偏好：${d.prefs.join('、')}</div>
+        `;
+        d.plan.forEach(p => {
+            html += `
+                <div class="plan-card bg-white dark:bg-gray-700 p-4 rounded-lg mb-3 shadow-sm">
+                    <div class="font-bold text-blue-600 text-base">Day${p.day} · ${p.title}</div>
+                    <div class="text-sm mt-2 text-gray-700 dark:text-gray-300">🌅 上午：${p.morning}</div>
+                    <div class="text-sm mt-1 text-gray-700 dark:text-gray-300">☀️ 下午：${p.afternoon}</div>
+                    <div class="text-sm mt-1 text-gray-700 dark:text-gray-300">🌙 晚上：${p.evening}</div>
+                    <div class="text-xs mt-2 text-green-600">🍜 推荐美食：${p.food}</div>
+                    <div class="mt-2 flex items-center gap-2">
+                        <span class="text-xs text-purple-600">🏨 住宿：</span>
+                        <span class="text-xs font-medium text-gray-800 dark:text-gray-200">${p.hotel}</span>
+                    </div>
+                    <div class="text-xs mt-2 text-gray-500">💡 ${p.tip}</div>
+                </div>
+            `;
+        });
+        const previewEl = document.getElementById('planPreview');
+        if(previewEl) previewEl.innerHTML = html;
+    }
+
+    // 保存行程到个人中心
+    function saveCurrentPlan() {
+        if (!currentUser) return openLoginModal();
+        if (!currentPlanData) return alert('先生成行程！');
+
+        let trips = JSON.parse(localStorage.getItem(`zhiyou_trips_${currentUser.account}`) || '[]');
+        trips.push(currentPlanData);
+        localStorage.setItem(`zhiyou_trips_${currentUser.account}`, JSON.stringify(trips));
+        alert('行程已保存到个人中心！');
+        loadProfileTrips();
+    }
+
+    // 导出行程PDF
+    function exportPlanPDF() {
+        if (!currentPlanData) return alert('先生成行程！');
+        alert('导出PDF功能开发中...');
+    }
+
+    // 细化工具函数
+    function getTrafficAI() {
+        const from = document.getElementById('fromCity')?.value;
+        const to = document.getElementById('toCity')?.value;
+        const el = document.getElementById('trafficResult');
+        if(el) el.innerHTML = `
+            🚄 高铁：${Math.floor(Math.random()*4)+2}小时 | 约¥${Math.floor(Math.random()*500)+300}<br>
+            ✈️ 飞机：${Math.floor(Math.random()*2)+1}小时 | 约¥${Math.floor(Math.random()*800)+500}<br>
+            🚗 自驾：${Math.floor(Math.random()*8)+4}小时 | 适合家庭出行
+        `;
+    }
+    function getHotelAI() {
+        const budget = document.getElementById('hotelBudget')?.value;
+        const el = document.getElementById('hotelResult');
+        if(el && budget) el.innerHTML = `
+            🏨 经济：¥${budget-100} | 评分4.5<br>
+            🏨 舒适：¥${budget} | 评分4.8（推荐）<br>
+            🏨 轻奢：¥${parseInt(budget)+200} | 评分4.9
+        `;
+    }
+    function getWeatherAI() {
+        const el = document.getElementById('weatherResult');
+        if(el) el.innerHTML = `
+            🌤️ 今日：20-28°C 晴<br>
+            🌥️ 未来6天：多云/晴，适宜出行<br>
+            👕 穿衣建议：短袖+薄外套
+        `;
+    }
+    function exportChecklist() {
+        if (currentPlanData) {
+            let list = `【${currentPlanData.city}旅行清单】\n1.证件：身份证/护照\n2.衣物：舒适穿搭\n3.用品：充电宝/相机\n4.药品：常用药`;
+            const el = document.getElementById('checklistPreview');
+            if(el) el.innerHTML = `<pre>${list}</pre>`;
+        } else alert('先生成行程');
+    }
+    function autoBudgetAI() {
+        const total = document.getElementById('totalBudget')?.value;
+        const el = document.getElementById('budgetSplit');
+        if(el && total) el.innerHTML = `
+            💰 总预算：¥${total}<br>
+            🚗 交通：${total*0.3} (30%)<br>
+            🏨 住宿：${total*0.4} (40%)<br>
+            🍜 餐饮：${total*0.2} (20%)<br>
+            🎫 门票：${total*0.1} (10%)
+        `;
+    }
+    function getWarnings() { 
+        const el = document.getElementById('warningBox');
+        if(el) el.innerHTML = '⚠️ 热门景点建议早8点前入场，提前预约门票 | 景区物价偏高，谨慎消费'; 
+    }
+    function getCultureTips() { 
+        const el = document.getElementById('cultureResult');
+        if(el) el.innerHTML = '🎭 尊重当地风俗，寺庙衣着整洁，勿大声喧哗 | 拍照前征得同意'; 
+    }
+    function askTravelQA() { 
+        const el = document.getElementById('qaAnswer');
+        if(el) el.innerHTML = '🧠 AI建议：优先前往核心景点，傍晚去江边/商圈散步，体验当地生活'; 
+    }
+    function generateLuggageList() {
+        const city = document.getElementById('luggageCity')?.value;
+        const el = document.getElementById('luggageResult');
+        if(el) el.innerHTML = `
+            🧳 证件类：身份证/银行卡<br>
+            ☀️ 护肤类：防晒/洗漱用品<br>
+            👕 衣物类：${city && city.includes('三亚')?'夏装':'舒适穿搭'}<br>
+            🔌 电子类：充电宝/相机
+        `;
+    }
+    function startVoiceRecognition() { 
+        const el = document.getElementById('voiceText'); 
+        if(el) el.innerText = '语音识别功能开发中...'; 
+        alert('语音识别功能开发中...'); 
+    }
+    function processVoiceCommand() { 
+        const el = document.getElementById('voiceText');
+        if (el && el.innerText.includes('三亚')) { 
+            const cityInp = document.getElementById('cityInput');
+            if(cityInp) cityInp.value = '三亚'; 
+            generatePlanWithAI(); 
+        } else alert('未识别到有效指令'); 
+    }
+
+    // 当前交通方式
+    let currentTransportMode = 'driving';
+    
+    // 坐标缓存，避免重复请求
+    const coordsCache = {};
+
+    // 根据地点类型获取图标路径
+    function getMarkerIconByType(type, isStart = false, isEnd = false) {
+        // 如果是起点，使用特殊图标
+        if (isStart) {
+            return 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-blue.png';
+        }
+        // 如果是终点，使用特殊图标
+        if (isEnd) {
+            return 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-orange.png';
+        }
+        
+        // 使用高德地图内置图标，避免跨域问题
+        const iconMap = {
+            '景点': 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png',
+            '景区': 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png',
+            '公园': 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-green.png',
+            '餐厅': 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png',
+            '美食': 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png',
+            '酒店': 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-yellow.png',
+            '住宿': 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-yellow.png',
+            '车站': 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-grey.png',
+            '机场': 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-grey.png',
+            '商场': 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-purple.png',
+        };
+        
+        const lowerType = (type || '景点').toLowerCase();
+        for (const [key, value] of Object.entries(iconMap)) {
+            if (lowerType.includes(key.toLowerCase())) {
+                return value;
+            }
+        }
+        
+        // 默认使用蓝色标记
+        return 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png';
+    }
+
+
+
+    // 检测是否在高德地图App中
+    function isAmapApp() {
+        const ua = navigator.userAgent.toLowerCase();
+        return ua.indexOf('amap') !== -1 || ua.indexOf('autonavi') !== -1;
+    }
+
+    // 交通方式切换功能
+    function setTransportMode(mode) {
+        currentTransportMode = mode;
+        
+        // 更新按钮样式
+        ['driving', 'walking', 'transfer'].forEach(m => {
+            const btn = document.getElementById(`btn-${m}`);
+            if (btn) {
+                if (m === mode) {
+                    btn.className = 'px-3 py-1 text-xs bg-blue-500 text-white rounded-full hover:bg-blue-600';
+                } else {
+                    btn.className = 'px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300';
+                }
+            }
+        });
+
+        // 重新绘制路线
+        if (currentPlanData && currentPlanData.plan) {
+            refreshMap();
+        }
+    }
+
+    // 清除路线
+    function clearMapRoute() {
+        if (map) {
+            // 清除所有标记
+            if (markers.length) {
+                map.remove(markers);
+                markers = [];
+            }
+            // 清除所有路线
+            if (routeLines.length) {
+                map.remove(routeLines);
+                routeLines = [];
+            }
+            // 关闭所有信息窗体
+            if (infoWindows.length) {
+                infoWindows.forEach(iw => iw.close());
+                infoWindows = [];
+            }
+            
+            // 重置地点列表
+            allLocations = [];
+            
+            // 隐藏地点列表
+            const listContainer = document.getElementById('locationList');
+            if (listContainer) {
+                listContainer.classList.add('hidden');
+            }
+            
+            // 显示提示
+            const loading = document.getElementById('mapLoading');
+            if (loading) {
+                loading.innerHTML = '<span class="text-sm text-green-600">✅ 路线已清除</span>';
+                loading.classList.remove('hidden');
+                setTimeout(() => {
+                    loading.classList.add('hidden');
+                    loading.innerHTML = '<span class="text-sm text-blue-600">️ 正在规划路线...</span>';
+                }, 2000);
+            }
+        }
+    }
+
+    // 高德地图（增强版：真实坐标 + 路线规划）
+    async function initMap() {
+        console.log('\n====================================');
+        console.log('🗺️ initMap() 开始执行');
+        console.log('====================================');
+        
+        const container = document.getElementById('mapContainer');
+        console.log(`📦 地图容器: ${container ? '存在' : '不存在'}`);
+        console.log(`📦 AMap对象: ${typeof AMap !== 'undefined' ? '已加载' : '未加载'}`);
+        
+        if (!container || typeof AMap === 'undefined') {
+            console.error('❌ 地图容器或AMap未加载');
+            return;
+        }
+        if (map) { 
+            console.log('🧹 销毁旧地图实例');
+            map.destroy(); 
+            map = null; 
+        }
+
+        const city = currentPlanData?.city || '成都';
+        console.log(`🗺️ 初始化地图 - 城市: ${city}`);
+        
+        // 使用高德地图API动态获取城市中心坐标
+        const center = await getCityCenter(city);
+        console.log(`📍 获取城市 ${city} 中心坐标: ${center}`);
+
+        map = new AMap.Map('mapContainer', { 
+            zoom: 12, 
+            center: center, 
+            viewMode: '2D',
+            mapStyle: 'amap://styles/whitesmoke',
+            dragEnable: true,
+            zoomEnable: true,
+            rotateEnable: false,
+            pitchEnable: false
+        });
+
+        console.log(`✅ 地图实例创建成功，中心点: ${center}`);
+
+        // 添加高德地图原生UI组件
+        addMapControls();
+
+        // 加载路径规划插件和地理编码服务
+        AMap.plugin(['AMap.Driving', 'AMap.Walking', 'AMap.Transfer', 'AMap.Geocoder', 'AMap.Scale', 'AMap.ToolBar'], async function() {
+            console.log('✅ 地图插件加载完成');
+            
+            // 添加比例尺和工具栏
+            map.addControl(new AMap.Scale());
+            map.addControl(new AMap.ToolBar({
+                position: 'LT',
+                offset: [10, 60]
+            }));
+            
+            if (currentPlanData && currentPlanData.plan && currentPlanData.plan.length > 0) {
+                const dayCount = currentPlanData.plan.length;
+                console.log(`\n====================================`);
+                console.log(`📅 开始处理真实行程 (${dayCount}天)`);
+                console.log(`====================================`);
+                
+                // 打印完整行程数据
+                console.log(`📋 完整行程数据:`);
+                currentPlanData.plan.forEach((day, idx) => {
+                    console.log(`  Day${idx + 1}: ${day.title}`);
+                    console.log(`    - morning: ${day.morning}`);
+                    console.log(`    - afternoon: ${day.afternoon}`);
+                    console.log(`    - evening: ${day.evening}`);
+                    console.log(`    - food: ${day.food}`);
+                    console.log(`    - hotel: ${day.hotel}`);
+                });
+
+                // 更新图例显示实际天数
+                updateMapLegend(dayCount);
+
+                // 生成天数按钮
+                generateDayButtons(dayCount);
+
+                // 清除旧的标记和路线
+                console.log(`🧹 清除旧标记和路线...`);
+                console.log(`  - 标记数量: ${markers.length}`);
+                console.log(`  - 路线数量: ${routeLines.length}`);
+                if (markers.length) { map.remove(markers); markers = []; }
+                if (routeLines.length) { map.remove(routeLines); routeLines = []; }
+                if (infoWindows.length) { infoWindows.forEach(iw => iw.close()); infoWindows = []; }
+
+                // 重置地点列表
+                allLocations = [];
+
+                // 使用前端高德地图JS API处理行程，获取真实坐标
+                console.log(`🎯 使用高德地图JS API处理行程，获取真实坐标`);
+                console.log(`📅 当前行程共 ${currentPlanData.plan.length} 天`);
+                
+                // 保存所有天数的行程数据，以便后续切换
+                window.allDaysPlanData = currentPlanData.plan;
+                window.currentDayIndex = 0;  // 当前显示第几天
+                
+                // 确认初始化状态
+                console.log(`\n====================================`);
+                console.log(`🔄 初始化完成，准备显示第一天`);
+                console.log(`📊 allDaysPlanData 长度: ${window.allDaysPlanData?.length || 0}`);
+                console.log(`📊 currentDayIndex: ${window.currentDayIndex}`);
+                console.log(`📊 计划处理第 ${window.currentDayIndex + 1} 天`);
+                console.log(`====================================`);
+                
+                // 初始只显示第一天的行程
+                console.log(`\n📌 初始显示第 1 天行程:`);
+                console.log(`   行程数据:`, JSON.stringify(currentPlanData.plan[0]));
+                
+                // 调用drawDayRoute并等待完成
+                console.log(`🚀 开始调用 drawDayRoute...`);
+                await drawDayRoute(currentPlanData.plan[0], 0);
+                console.log(`✅ drawDayRoute 调用完成`);
+                
+                // 处理完成后调整视野
+                setTimeout(() => {
+                    console.log(`⏰ setTimeout 回调执行，当前标记数量: ${markers.length}`);
+                    if (markers.length > 0) {
+                        console.log(`🔍 调整视野显示第 1 天的 ${markers.length} 个标记`);
+                        console.log(`📍 地图当前中心点:`, map.getCenter());
+                        console.log(`📍 地图当前缩放:`, map.getZoom());
+                        
+                        // 获取所有标记的位置
+                        const positions = markers.map(m => m.getPosition());
+                        console.log(`📍 标记位置列表:`, positions);
+                        
+                        // 手动计算边界
+                        const bounds = new AMap.Bounds();
+                        positions.forEach(pos => {
+                            if (pos) bounds.extend(pos);
+                        });
+                        console.log(`📐 计算的边界:`, bounds);
+                        
+                        // 设置视野
+                        map.setFitView(markers, false, [60, 60, 60, 60]);
+                        
+                        setTimeout(() => {
+                            console.log(`✅ 视野调整后地图中心点:`, map.getCenter());
+                            console.log(`✅ 视野调整后地图缩放:`, map.getZoom());
+                        }, 500);
+                    } else {
+                        console.warn(`⚠️ 没有标记可显示`);
+                    }
+                    // 隐藏加载动画
+                    hideMapLoading();
+                    console.log(`✅ 第 1 天行程显示完成`);
+                }, 1000);
+
+                console.log(`\n✅ 真实行程处理完成`);
+                console.log(`====================================`);
+                
+                // 调整视野显示所有标记
+                if (markers.length > 0) {
+                    console.log(`🔍 调整视野: ${markers.length} 个标记`);
+                    console.log(`📍 标记位置列表:`);
+                    markers.forEach((m, i) => {
+                        const pos = m.getPosition();
+                        console.log(`   [${i+1}] ${m.getTitle()} -> (${pos?.lng?.toFixed(4)}, ${pos?.lat?.toFixed(4)})`);
+                    });
+                    
+                    // 强制调整视野
+                    try {
+                        map.setFitView(markers, false, [60, 60, 60, 60]);
+                        console.log(`✅ setFitView 调用成功`);
+                        
+                        // 强制刷新地图视图
+                        setTimeout(() => {
+                            if (markers.length > 0) {
+                                map.setFitView(markers, false, [60, 60, 60, 60]);
+                                console.log(`✅ 延迟调整视野完成`);
+                            }
+                        }, 500);
+                        
+                        // 再次强制刷新并隐藏加载动画
+                        setTimeout(() => {
+                            if (markers.length > 0) {
+                                map.setFitView(markers, false, [60, 60, 60, 60]);
+                                console.log(`✅ 第二次延迟调整视野完成`);
+                            }
+                            // 隐藏加载动画
+                            hideMapLoading();
+                            console.log(`✅ 地图加载完成，显示地图`);
+                        }, 1000);
+                    } catch (e) {
+                        console.error(`❌ setFitView 调用失败:`, e);
+                        hideMapLoading();
+                    }
+                } else {
+                    console.warn(`⚠️ 没有标记可显示`);
+                    hideMapLoading();
+                }
+            } else {
+                console.warn('⚠️ 没有行程数据可显示');
+            }
+        });
+    }
+
+    // 当前显示的天数（null 表示显示全部）
+    let currentDisplayDay = null;
+
+    // 显示地点列表
+    function showLocationList(locations) {
+        const listContainer = document.getElementById('locationList');
+        const contentContainer = document.getElementById('locationListContent');
+        
+        if (!listContainer || !contentContainer) return;
+        
+        if (!locations || locations.length === 0) {
+            listContainer.classList.add('hidden');
+            return;
+        }
+        
+        const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+        
+        let html = '';
+        locations.forEach((loc, idx) => {
+            const color = colors[loc.dayIdx % colors.length];
+            const icon = loc.type === '餐厅' ? '🍽️' : loc.type === '酒店' ? '🏨' : '🏛️';
+            html += `
+                <div class="flex items-center gap-2 text-xs p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <span class="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background-color: ${color}">
+                        ${loc.dayIdx + 1}
+                    </span>
+                    <span>${icon}</span>
+                    <span class="text-gray-700 dark:text-gray-300">${loc.name}</span>
+                    <span class="text-gray-400 text-xs">${loc.type}</span>
+                    ${loc.coords ? 
+                        `<span class="text-green-500 text-xs ml-auto">✓</span>` : 
+                        `<span class="text-red-400 text-xs ml-auto">✗</span>`
+                    }
+                </div>
+            `;
+        });
+        
+        contentContainer.innerHTML = html;
+        listContainer.classList.remove('hidden');
+    }
+
+    // 生成天数按钮
+    function generateDayButtons(dayCount) {
+        const container = document.getElementById('dayButtons');
+        if (!container) return;
+        
+        const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+        let html = '';
+        
+        for (let i = 0; i < dayCount; i++) {
+            const color = colors[i];
+            // 第一天按钮初始选中状态
+            const isSelected = i === 0;
+            const selectedStyle = isSelected ? 'transform: scale(1.1); box-shadow: 0 2px 8px rgba(0,0,0,0.2);' : 'opacity: 0.4;';
+            html += `<button onclick="showDay(${i})" id="btn-day-${i}" 
+                class="px-3 py-1 text-xs rounded-full hover:opacity-80 transition-colors"
+                style="background-color: ${color}; color: white; ${selectedStyle}">
+                📍 第${i + 1}天
+            </button>`;
+        }
+        
+        // 添加"显示全部"按钮
+        html += `<button onclick="showAllDays()" id="btn-all-days" 
+            class="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 transition-colors">
+            🗺️ 显示全部
+        </button>`;
+        
+        container.innerHTML = html;
+        console.log(`✅ 生成 ${dayCount} 个天数按钮，初始选中第 1 天`);
+    }
+
+    // 显示指定天数的路线（重新绘制）
+    async function showDay(dayIdx) {
+        console.log(`\n====================================`);
+        console.log(`📍 切换显示第 ${dayIdx + 1} 天`);
+        console.log(`📊 allDaysPlanData 长度: ${window.allDaysPlanData?.length || 0}`);
+        console.log(`📊 当前天数数据:`, window.allDaysPlanData?.[dayIdx]);
+        window.currentDayIndex = dayIdx;
+        
+        // 显示加载动画
+        showMapLoading(`正在加载第 ${dayIdx + 1} 天行程...`);
+        
+        // 更新按钮样式
+        const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+        if (currentPlanData && currentPlanData.plan) {
+            for (let i = 0; i < currentPlanData.plan.length; i++) {
+                const btn = document.getElementById(`btn-day-${i}`);
+                if (btn) {
+                    if (i === dayIdx) {
+                        btn.style.transform = 'scale(1.1)';
+                        btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+                        btn.style.opacity = '1';
+                    } else {
+                        btn.style.transform = 'scale(1)';
+                        btn.style.boxShadow = 'none';
+                        btn.style.opacity = '0.4';
+                    }
+                }
+            }
+        }
+        
+        // 重置"显示全部"按钮样式
+        const btnAll = document.getElementById('btn-all-days');
+        if (btnAll) {
+            btnAll.style.transform = 'scale(1)';
+            btnAll.style.boxShadow = 'none';
+        }
+        
+        // 清除当前地图上的标记和路线
+        if (markers.length) { map.remove(markers); markers = []; }
+        if (routeLines.length) { map.remove(routeLines); routeLines = []; }
+        if (infoWindows.length) { infoWindows.forEach(iw => iw.close()); infoWindows = []; }
+        allLocations = [];
+        
+        // 绘制指定天数的行程
+        if (window.allDaysPlanData && window.allDaysPlanData[dayIdx]) {
+            await drawDayRoute(window.allDaysPlanData[dayIdx], dayIdx);
+            
+            // 调整视野
+            setTimeout(() => {
+                if (markers.length > 0) {
+                    map.setFitView(markers, false, [60, 60, 60, 60]);
+                }
+                hideMapLoading();
+                console.log(`✅ 第 ${dayIdx + 1} 天行程显示完成`);
+            }, 500);
+        }
+    }
+
+    // 显示全部天数（重新绘制所有天数）
+    async function showAllDays() {
+        console.log(`📍 显示全部天数`);
+        window.currentDayIndex = null;
+        
+        // 显示加载动画
+        showMapLoading('正在加载所有天数行程...');
+        
+        // 重置所有天数按钮样式
+        if (currentPlanData && currentPlanData.plan) {
+            for (let i = 0; i < currentPlanData.plan.length; i++) {
+                const btn = document.getElementById(`btn-day-${i}`);
+                if (btn) {
+                    btn.style.transform = 'scale(1)';
+                    btn.style.boxShadow = 'none';
+                    btn.style.opacity = '1';
+                }
+            }
+        }
+        
+        // 设置"显示全部"按钮为选中状态
+        const btnAll = document.getElementById('btn-all-days');
+        if (btnAll) {
+            btnAll.style.transform = 'scale(1.1)';
+            btnAll.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+        }
+        
+        // 清除当前地图上的标记和路线
+        if (markers.length) { map.remove(markers); markers = []; }
+        if (routeLines.length) { map.remove(routeLines); routeLines = []; }
+        if (infoWindows.length) { infoWindows.forEach(iw => iw.close()); infoWindows = []; }
+        allLocations = [];
+        
+        // 绘制所有天数的行程
+        if (window.allDaysPlanData) {
+            for (let dayIdx = 0; dayIdx < window.allDaysPlanData.length; dayIdx++) {
+                await drawDayRoute(window.allDaysPlanData[dayIdx], dayIdx);
+            }
+            
+            // 调整视野
+            setTimeout(() => {
+                if (markers.length > 0) {
+                    map.setFitView(markers, false, [60, 60, 60, 60]);
+                }
+                hideMapLoading();
+                console.log(`✅ 所有天数行程显示完成`);
+            }, 500);
+        }
+    }
+
+    // 更新地图图例（只显示实际行程天数）
+    function updateMapLegend(days) {
+        const legendContainer = document.getElementById('mapLegend');
+        if (!legendContainer) return;
+        
+        const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+        let html = '';
+        
+        for (let i = 0; i < days; i++) {
+            html += `<div class="flex items-center gap-1"><span class="w-4 h-1 bg-[${colors[i]}] rounded"></span> 第${i + 1}天</div>`;
+        }
+        
+        html += '<div class="flex items-center gap-1"><span class="w-4 h-1 bg-gray-400 rounded"></span> 路线连接</div>';
+        legendContainer.innerHTML = html;
+        
+        console.log(`✅ 更新图例: 显示 ${days} 天`);
+    }
+
+    // 添加地图控制组件
+    function addMapControls() {
+        // 添加鹰眼控件（缩略图）
+        map.addControl(new AMap.HawkEye({
+            position: 'RB',
+            offset: [10, 10],
+            width: 150,
+            height: 100
+        }));
+        
+        // 添加地图类型切换控件
+        map.addControl(new AMap.MapType({
+            position: 'RT',
+            defaultType: 0
+        }));
+    }
+
+    // 根据后端返回的 waypoints（含 name/type/coords/day）直接绘制地图标记和路线
+    function drawLocationsFromServer(locations) {
+        if (!locations || !locations.length || !map) return;
+
+        // 按 day 分组，便于分别绘制路线，不同天用不同颜色
+        const byDay = {};
+        locations.forEach((loc, idx) => {
+            const dayIdx = (loc.day && loc.day > 0) ? loc.day - 1 : 0;
+            if (!byDay[dayIdx]) byDay[dayIdx] = [];
+            byDay[dayIdx].push({
+                name: loc.name,
+                type: loc.type || '景点',
+                lng: loc.coords.lng,
+                lat: loc.coords.lat,
+                address: loc.address || '',
+                order: idx
+            });
+        });
+
+        const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
+
+        // 依次渲染每一天：先加 marker，再把当天所有点用实线连起来
+        Object.keys(byDay).sort((a, b) => Number(a) - Number(b)).forEach(dayKey => {
+            const dayIdx = Number(dayKey);
+            const pts = byDay[dayKey];
+            const color = colors[dayIdx % colors.length];
+            const dayLabel = `第${dayIdx + 1}天`;
+            const totalPoints = pts.length;
+
+            // 1) 添加标记 - 使用高德地图原生图标（带起点/终点标识）
+            pts.forEach((pt, idx) => {
+                // 判断是否是起点或终点
+                const isStart = idx === 0;
+                const isEnd = idx === totalPoints - 1;
+                
+                // 根据地点类型选择不同图标（带起点/终点标识）
+                const iconPath = getMarkerIconByType(pt.type, isStart, isEnd);
+                
+                const marker = new AMap.Marker({
+                    position: new AMap.LngLat(pt.lng, pt.lat),
+                    title: pt.name,
+                    icon: new AMap.Icon({
+                        size: new AMap.Size(32, 32),
+                        image: iconPath,
+                        imageSize: new AMap.Size(32, 32)
+                    }),
+                    extData: { dayIdx, name: pt.name, type: pt.type, isStart, isEnd },
+                    zIndex: 100 + dayIdx * 10 + idx
+                });
+
+                // 添加序号标签（带起点/终点标识）
+                let positionLabel = `${idx + 1}`;
+                if (isStart) positionLabel = '🚩';
+                if (isEnd) positionLabel = '🏁';
+                
+                marker.setLabel({
+                    offset: new AMap.Pixel(16, -40),
+                    content: `<div style="background:${color};color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.2);">${positionLabel}</div>`,
+                    direction: 'top'
+                });
+
+                // 路线位置提示
+                let positionText = `第${idx + 1}站`;
+                if (isStart) positionText = '🚩 起点';
+                if (isEnd) positionText = '🏁 终点';
+                
+                const nextSpotHint = !isEnd ? `<div style="color:#10B981;font-size:12px;margin-top:8px;">👉 下一站: 第${idx + 2}站</div>` : '';
+
+                // 获取地址信息
+                let addressDisplay = '';
+                if (pt.address) {
+                    addressDisplay = `<div style="color:#10B981;font-size:12px;margin-top:8px;padding:6px;background:#f0fdf4;border-radius:4px;">
+                                        📍 ${pt.address}
+                                     </div>`;
+                }
+                
+                const infoWindow = new AMap.InfoWindow({
+                    content: `<div style="min-width:240px;padding:10px;">
+                                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                    <img src="${iconPath}" width="24" height="24" />
+                                    <h4 style="font-size:16px;font-weight:bold;margin:0;">${pt.name}</h4>
+                                </div>
+                                <div style="color:#666;font-size:13px;margin-bottom:8px;">
+                                    <span style="display:inline-block;padding:2px 8px;background:${color};color:white;border-radius:4px;font-size:11px;margin-right:6px;">${dayLabel}</span>
+                                    <span style="display:inline-block;padding:2px 8px;background:#f0f0f0;color:#666;border-radius:4px;font-size:11px;">${pt.type}</span>
+                                    <span style="display:inline-block;padding:2px 8px;background:#3B82F6;color:white;border-radius:4px;font-size:11px;">${positionText}</span>
+                                </div>
+                                <div style="display:flex;gap:12px;font-size:12px;color:#999;margin-bottom:4px;">
+                                    <span>🗺️ 坐标: ${pt.lng.toFixed(4)}, ${pt.lat.toFixed(4)}</span>
+                                </div>
+                                ${addressDisplay}
+                                ${nextSpotHint}
+                              </div>`,
+                    offset: new AMap.Pixel(0, -30)
+                });
+
+                marker.on('click', () => infoWindow.open(map, marker.getPosition()));
+
+                map.add(marker);
+                markers.push(marker);
+                infoWindows.push(infoWindow);
+                allLocations.push({ name: pt.name, type: pt.type, dayIdx, coords: { lng: pt.lng, lat: pt.lat } });
+            });
+
+            // 2) 绘制折线连接（至少 2 个点才连）
+            if (pts.length >= 2) {
+                // 绘制简单的折线连接途经点
+                const points_for_route = pts.map(p => new AMap.LngLat(p.lng, p.lat));
+                
+                const polyline = new AMap.Polyline({
+                    path: points_for_route,
+                    strokeColor: color,
+                    strokeWeight: 5,
+                    strokeOpacity: 0.85,
+                    strokeStyle: 'solid',
+                    borderWeight: 2,
+                    outlineColor: 'rgba(255,255,255,0.8)',
+                    zIndex: 10 + dayIdx
+                });
+                
+                map.add(polyline);
+                routeLines.push(polyline);
+                console.log(`✅ 第${dayIdx + 1}天折线绘制完成，共 ${pts.length} 个点`);
+            }
+        });
+
+        // 更新地点列表 UI
+        showLocationList(allLocations);
+    }
+
+    async function drawDayRoute(day, dayIdx) {
+        console.log(`\n🌟 ====== 开始处理第 ${dayIdx + 1} 天行程 ======`);
+        showMapLoading(`正在解析第${dayIdx + 1}天行程...`);
+        
+        // 提取当天所有地点
+        const points = [];
+        
+        console.log(`📝 原始行程数据:`);
+        console.log(`  - morning: ${day.morning}`);
+        console.log(`  - afternoon: ${day.afternoon}`);
+        console.log(`  - evening: ${day.evening}`);
+        
+        // 优先提取并验证酒店信息
+        let verifiedHotelName = null;
+        let verifiedHotelAddress = '';
+        
+        if (day.hotel) {
+            // 提取酒店名称和地址
+            // 格式：酒店名称（地址）- 价格：XX元/晚/人
+            const addressMatch = day.hotel.match(/(.+?)（([^）]+)）/);
+            if (addressMatch) {
+                verifiedHotelName = addressMatch[1].trim();
+                verifiedHotelAddress = addressMatch[2].trim();
+            } else {
+                // 备用模式：酒店名称 (地址)
+                const addressMatchEn = day.hotel.match(/(.+?)\(([^)]+)\)/);
+                if (addressMatchEn) {
+                    verifiedHotelName = addressMatchEn[1].trim();
+                    verifiedHotelAddress = addressMatchEn[2].trim();
+                } else {
+                    // 直接提取名称
+                    const hotelPatterns = [
+                        /(.+?)(?:酒店|宾馆|民宿|客栈|旅馆)/,
+                        /^(.+?)(?:\(|（)/,
+                    ];
+                    for (const pattern of hotelPatterns) {
+                        const match = day.hotel.match(pattern);
+                        if (match && match[1] && match[1].trim().length >= 2) {
+                            verifiedHotelName = match[1].trim() + '酒店';
+                            break;
+                        }
+                    }
+                    if (!verifiedHotelName) {
+                        verifiedHotelName = day.hotel.split('（')[0].split('：')[0].split(',')[0].split('，')[0].trim();
+                    }
+                }
+            }
+            
+            console.log(`🏨 酒店信息: ${verifiedHotelName}, 地址: ${verifiedHotelAddress}`);
+        }
+        
+        // 从 morning, afternoon, evening 中提取地点
+        [day.morning, day.afternoon, day.evening].forEach((period, periodIdx) => {
+            if (!period) {
+                console.log(`  ⚠️ ${['morning', 'afternoon', 'evening'][periodIdx]} 为空`);
+                return;
+            }
+            
+            // 更智能的地点提取：匹配"到达XX景点（地址）游玩"格式
+            // 使用正则提取"到达"和"游玩"之间的景点名称
+            const spotPattern = /(?:到达|前往|至)([^\s（(]+[^\s，,。)])(?:（[^）]+）|\([^)]+\))?(?:游玩|参观|游览|用餐)?/g;
+            let match;
+            
+            while ((match = spotPattern.exec(period)) !== null) {
+                let place = match[1].trim();
+                
+                // 过滤掉非地点词汇
+                const skipWords = ['早餐', '午餐', '晚餐', '休息', '自由活动', '酒店', '民宿', '客栈', '住宿'];
+                if (skipWords.some(w => place.includes(w))) {
+                    continue;
+                }
+                
+                // 过滤掉纯数字、纯英文
+                if (/^\d+$/.test(place) || /^[a-zA-Z]+$/.test(place)) {
+                    continue;
+                }
+                
+                // 过滤掉太短或太长的
+                if (place.length < 2 || place.length > 20) {
+                    continue;
+                }
+                
+                console.log(`    ✅ 添加景点: ${place}`);
+                points.push({ name: place, type: '景点' });
+            }
+        });
+        
+        // 如果有餐厅推荐，也添加进去
+        if (day.food) {
+            // 提取餐厅名称，支持多种格式
+            const foodPatterns = [
+                /推荐(.+?)(?:，|,|；|;|。)/,  // 推荐XXX，
+                /(.+?)(?:特色|美食|餐厅|饭店|小吃)/,  // XXX美食
+                /^(.+?)(?:\(|（)/,  // XXX（
+            ];
+            
+            let foodName = null;
+            for (const pattern of foodPatterns) {
+                const match = day.food.match(pattern);
+                if (match && match[1] && match[1].trim().length >= 2) {
+                    foodName = match[1].trim();
+                    break;
+                }
+            }
+            
+            // 如果没有匹配到，使用简单分割
+            if (!foodName) {
+                foodName = day.food.split('（')[0].split('：')[0].split(',')[0].split('，')[0].trim();
+            }
+            
+            if (foodName && foodName.length >= 2 && foodName.length <= 20) {
+                console.log(`    ✅ 添加餐厅: ${foodName}`);
+                points.push({ name: foodName, type: '餐厅' });
+            }
+        }
+
+        // 如果有酒店，添加到最前面作为唯一起点（使用验证后的酒店名称）
+        if (verifiedHotelName && verifiedHotelName.length >= 2 && verifiedHotelName.length <= 25) {
+            console.log(`    ✅ 添加酒店作为唯一起点: ${verifiedHotelName}, 地址: ${verifiedHotelAddress}`);
+            // 酒店作为起点，添加到最前面（包含地址）
+            points.unshift({ name: verifiedHotelName, type: '酒店', isStart: true, address: verifiedHotelAddress });
+        }
+
+        // 去重（保留酒店作为起点）
+        const uniquePoints = [];
+        const seen = new Set();
+        points.forEach(p => {
+            if (!seen.has(p.name)) {
+                seen.add(p.name);
+                uniquePoints.push(p);
+            }
+        });
+
+        console.log(`📍 第 ${dayIdx + 1} 天提取到 ${uniquePoints.length} 个地点:`, uniquePoints.map(p => p.name));
+
+        if (uniquePoints.length === 0) {
+            console.warn(`⚠️ 第 ${dayIdx + 1} 天没有找到地点`);
+            return;
+        }
+
+        // 使用高德地图API直接获取真实坐标（并行获取，提高速度）
+        console.log(`🔍 开始并行获取 ${uniquePoints.length} 个地点坐标...`);
+        
+        // 并行获取所有坐标，不重试（减少等待时间）
+        const waypoints = await Promise.all(uniquePoints.map(async (point, idx) => {
+            console.log(`🔍 [${idx + 1}/${uniquePoints.length}] 获取地点: ${point.name} (${point.type})`);
+            
+            const coords = await getCoordinates(point.name);
+            if (coords) {
+                console.log(`✅ [${idx + 1}] 成功: "${point.name}" → ${coords.lng}, ${coords.lat}`);
+                return {
+                    name: point.name,
+                    type: point.type,
+                    coords: coords
+                };
+            } else {
+                console.warn(`❌ [${idx + 1}] 获取地点 "${point.name}" 坐标失败`);
+                return {
+                    name: point.name,
+                    type: point.type,
+                    coords: null
+                };
+            }
+        }));
+
+        // 过滤有有效坐标的点
+        const validPoints = waypoints.filter(wp => wp.coords);
+        
+        showMapLoading(`正在绘制第${dayIdx + 1}天路线...`);
+        
+        if (validPoints.length >= 2) {
+            // 绘制路线
+            drawRouteOnMap(validPoints, dayIdx);
+        } else if (validPoints.length === 1) {
+            // 只有一个点，只添加标记
+            const wp = validPoints[0];
+            addMarker(wp.coords.lng, wp.coords.lat, wp.name, wp.type, dayIdx, 0);
+            map && map.setFitView(markers);
+        } else {
+            // 没有有效坐标，跳过当天路线绘制
+            console.warn(`⚠️ 第 ${dayIdx + 1} 天没有有效坐标，跳过绘制`);
+        }
+        
+        // 收集地点信息用于显示列表
+        waypoints.forEach(wp => {
+            allLocations.push({
+                name: wp.name,
+                type: wp.type,
+                dayIdx: dayIdx,
+                coords: wp.coords
+            });
+        });
+        
+        // 更新地点列表显示
+        showLocationList(allLocations);
+        
+        console.log(`✅ 第 ${dayIdx + 1} 天处理完成，共 ${markers.length} 个标记\n`);
+    }
+
+    // 路线缓存，避免重复请求
+    const routeCache = new Map();
+    
+    function drawRouteOnMap(waypoints, dayIdx) {
+        const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+        const color = colors[dayIdx % colors.length];
+        
+        console.log(`🎨 绘制第 ${dayIdx + 1} 天路线，颜色: ${color}`);
+        console.log(`📍 途经点:`, waypoints.map(w => w.name));
+        console.log(`🗺️ 当前地图状态: ${map ? '存在' : '不存在'}`);
+        console.log(`📊 当前标记数量: ${markers.length}`);
+
+        if (waypoints.length < 2) {
+            console.warn(`⚠️ 第 ${dayIdx + 1} 天只有 ${waypoints.length} 个点，无法绘制路线`);
+            return;
+        }
+
+        const points_for_route = waypoints.map(wp => {
+            return new AMap.LngLat(wp.coords.lng, wp.coords.lat);
+        });
+
+        console.log(`📐 路线坐标点:`, points_for_route);
+
+        // 使用高德地图真实路线规划（带导航提示）
+        planDrivingRouteWithNavigation(points_for_route, color, dayIdx, waypoints);
+    }
+
+    function planDrivingRouteWithNavigation(points_for_route, color, dayIdx, waypoints) {
+        if (!map) {
+            console.error('❌ map对象不存在');
+            return;
+        }
+
+        // 生成缓存key
+        const cacheKey = points_for_route.map(p => `${p.lng},${p.lat}`).join('|');
+        
+        // 检查缓存
+        if (routeCache.has(cacheKey)) {
+            console.log(`⚡ 使用缓存路线: ${cacheKey}`);
+            const cachedRoute = routeCache.get(cacheKey);
+            drawCachedRoute(cachedRoute, color, dayIdx);
+            return;
+        }
+
+        console.log(`🚗 使用高德真实路线规划，第${dayIdx + 1}天`);
+        
+        AMap.plugin('AMap.Driving', function() {
+            const driving = new AMap.Driving({
+                map: map,
+                panel: null,
+                autoFitView: false,
+                policy: AMap.DrivingPolicy.LEAST_TIME,
+                showTraffic: false,
+                hideMarkers: true
+            });
+
+            driving.search(points_for_route[0], points_for_route[points_for_route.length - 1], {
+                waypoints: points_for_route.slice(1, -1)
+            }, function(status, result) {
+                if (status === 'complete' && result.routes && result.routes.length > 0) {
+                    const realRoute = result.routes[0];
+                    
+                    // 提取路线坐标
+                    const detailedPath = [];
+                    const navigationSteps = [];
+                    
+                    realRoute.steps.forEach((step, index) => {
+                        if (step.path && step.path.length > 0) {
+                            detailedPath.push(...step.path);
+                        }
+                        // 收集导航提示
+                        navigationSteps.push({
+                            index: index + 1,
+                            instruction: step.instruction || '',
+                            distance: step.distance || 0,
+                            duration: step.duration || 0,
+                            road: step.road || ''
+                        });
+                    });
+
+                    // 缓存路线
+                    routeCache.set(cacheKey, {
+                        path: detailedPath,
+                        steps: navigationSteps,
+                        distance: realRoute.distance,
+                        duration: realRoute.duration
+                    });
+
+                    // 绘制路线
+                    const routeLine = new AMap.Polyline({
+                        path: detailedPath,
+                        strokeColor: color,
+                        strokeWeight: 6,
+                        strokeOpacity: 0.9,
+                        borderWeight: 2,
+                        outlineColor: 'rgba(255,255,255,0.8)',
+                        zIndex: 20 + dayIdx,
+                        lineCap: 'round',
+                        lineJoin: 'round'
+                    });
+                    
+                    map.add(routeLine);
+                    routeLines.push(routeLine);
+
+                    // 更新路线详情面板
+                    updateRoutePanel(navigationSteps, dayIdx, realRoute.distance, realRoute.duration, waypoints);
+
+                    // 调整视野
+                    setTimeout(() => {
+                        map.setFitView([...markers, routeLine], false, [60, 60, 60, 60]);
+                    }, 300);
+
+                    console.log(`✅ 第${dayIdx + 1}天路线绘制完成，距离: ${realRoute.distance}米，时间: ${Math.round(realRoute.duration / 60)}分钟`);
+                } else {
+                    console.error('❌ 驾车路线规划失败:', status, result);
+                    // 降级为直线连接
+                    drawFallbackRoute(points_for_route, color, dayIdx);
+                }
+            });
+        });
+    }
+
+    // 绘制缓存路线
+    function drawCachedRoute(cachedRoute, color, dayIdx) {
+        const routeLine = new AMap.Polyline({
+            path: cachedRoute.path,
+            strokeColor: color,
+            strokeWeight: 6,
+            strokeOpacity: 0.9,
+            borderWeight: 2,
+            outlineColor: 'rgba(255,255,255,0.8)',
+            zIndex: 20 + dayIdx
+        });
+        
+        map.add(routeLine);
+        routeLines.push(routeLine);
+        
+        console.log(`✅ 缓存路线绘制完成`);
+    }
+
+    // 降级路线（直线连接）
+    function drawFallbackRoute(points_for_route, color, dayIdx) {
+        const routeLine = new AMap.Polyline({
+            path: points_for_route,
+            strokeColor: color,
+            strokeWeight: 5,
+            strokeOpacity: 0.7,
+            strokeStyle: 'dashed',
+            zIndex: 10 + dayIdx
+        });
+        
+        map.add(routeLine);
+        routeLines.push(routeLine);
+        console.log(`⚠️ 使用降级路线（直线连接）`);
+    }
+
+    // 更新路线详情面板
+    function updateRoutePanel(steps, dayIdx, distance, duration, waypoints) {
+        const panel = document.getElementById('routePanel');
+        const stepsContainer = document.getElementById('routeStepsContainer');
+        const distanceEl = document.getElementById('routeDistance');
+        const durationEl = document.getElementById('routeDuration');
+        const dayBadge = document.getElementById('routeDayBadge');
+
+        if (!panel || !stepsContainer) return;
+
+        // 更新基本信息
+        dayBadge.textContent = `第${dayIdx + 1}天`;
+        distanceEl.textContent = `距离: ${(distance / 1000).toFixed(1)}公里`;
+        durationEl.textContent = `时间: ${Math.round(duration / 60)}分钟`;
+
+        // 构建路线步骤HTML
+        let stepsHtml = '';
+        let currentLocation = waypoints[0]?.name || '起点';
+        
+        steps.forEach((step, index) => {
+            const nextLocation = waypoints[index + 1]?.name || '终点';
+            const icon = getNavigationIcon(step.instruction);
+            
+            stepsHtml += `
+                <div class="flex items-start gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center flex-shrink-0">${icon}</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <span class="font-medium text-sm">${step.instruction}</span>
+                            <span class="text-xs text-gray-500">${step.distance}米</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">${currentLocation} → ${nextLocation}</div>
+                    </div>
+                </div>
+            `;
+            
+            currentLocation = nextLocation;
+        });
+
+        stepsContainer.innerHTML = stepsHtml;
+        panel.classList.remove('hidden');
+    }
+
+    // 获取导航图标
+    function getNavigationIcon(instruction) {
+        if (!instruction) return '🚗';
+        if (instruction.includes('左转') || instruction.includes('向左')) return '↩️';
+        if (instruction.includes('右转') || instruction.includes('向右')) return '↪️';
+        if (instruction.includes('直行') || instruction.includes('继续')) return '➡️';
+        if (instruction.includes('掉头')) return '↩️';
+        if (instruction.includes('环岛')) return '🔄';
+        if (instruction.includes('出口')) return '🚪';
+        if (instruction.includes('到达')) return '🏁';
+        return '🚗';
+    }
+
+    // 当前选中的景点详情
+    let currentSpotDetail = null;
+
+    // 打开景点详情弹窗
+    function openSpotDetail(name, type, address, rating = '--', desc = '') {
+        currentSpotDetail = { name, type, address, rating, desc };
+        
+        document.getElementById('spotDetailName').textContent = name;
+        document.getElementById('spotDetailType').textContent = type;
+        document.getElementById('spotDetailAddress').textContent = address || '暂无地址';
+        document.getElementById('spotDetailRating').textContent = rating;
+        document.getElementById('spotDetailDesc').textContent = desc || '暂无简介';
+        
+        // 设置随机景点图片
+        const imageSeed = encodeURIComponent(name);
+        document.getElementById('spotDetailImage').src = `https://picsum.photos/seed/${imageSeed}/600/400`;
+        
+        // 模拟数据填充
+        document.getElementById('spotDetailTime').textContent = '开放时间: 09:00-18:00';
+        document.getElementById('spotDetailPrice').textContent = '门票: 免费';
+        
+        document.getElementById('spotDetailModal').style.display = 'flex';
+    }
+
+    // 关闭景点详情弹窗
+    function closeSpotDetailModal() {
+        document.getElementById('spotDetailModal').style.display = 'none';
+        currentSpotDetail = null;
+    }
+
+    // 在地图上查看景点
+    function viewSpotOnMap() {
+        if (currentSpotDetail && map) {
+            closeSpotDetailModal();
+            // 可以添加定位到景点的逻辑
+        }
+    }
+
+    // 导航前往景点
+    function navigateToSpot() {
+        if (currentSpotDetail) {
+            const url = `amapuri://route/plan?sourceApplication=tourism_planner&dname=${encodeURIComponent(currentSpotDetail.name)}&dlat=&dlng=&dev=0&t=0`;
+            window.location.href = url;
+        }
+    }
+
+    // 旧版驾车路线函数（保留兼容）
+    function planDrivingRoute(points_for_route, color, dayIdx) {
+        planDrivingRouteWithNavigation(points_for_route, color, dayIdx, []);
+    }
+
+    function planWalkingRoute(points_for_route, color, dayIdx) {
+        const walking = new AMap.Walking({
+            map: map,
+            panel: null,
+            autoFitView: false
+        });
+
+        showMapLoading();
+
+        walking.search(points_for_route[0], points_for_route[points_for_route.length-1], function(status, result) {
+            hideMapLoading();
+            if (status === 'complete' && result.routes && result.routes.length > 0) {
+                
+                const routes = result.routes[0];
+                const detailedPath = [];
+                
+                routes.steps.forEach(step => {
+                    if (step.path && step.path.length > 0) {
+                        detailedPath.push(...step.path);
+                    }
+                });
+                
+                if (detailedPath.length > 0) {
+                    const routeLine = new AMap.Polyline({
+                        path: detailedPath,
+                        strokeColor: color,
+                        strokeWeight: 5,
+                        strokeOpacity: 0.9,
+                        zIndex: 20
+                    });
+                    map.add(routeLine);
+                    routeLines.push(routeLine);
+                }
+            } else {
+                console.error('❌ 步行路线规划失败:', status, result);
+            }
+        });
+    }
+
+    function planTransferRoute(points_for_route, color, dayIdx) {
+        const transfer = new AMap.Transfer({
+            map: map,
+            panel: null,
+            autoFitView: false,
+            city: currentPlanData?.city || '成都',
+            policy: AMap.TransferPolicy.LEAST_TIME
+        });
+
+        showMapLoading();
+
+        transfer.search(points_for_route[0], points_for_route[points_for_route.length-1], function(status, result) {
+            hideMapLoading();
+            if (status === 'complete' && result.plans && result.plans.length > 0) {
+                
+                const plan = result.plans[0];
+                const detailedPath = [];
+                
+                plan.segments.forEach(seg => {
+                    if (seg.transit && seg.transit.path && seg.transit.path.length > 0) {
+                        detailedPath.push(...seg.transit.path);
+                    }
+                });
+                
+                if (detailedPath.length > 0) {
+                    const routeLine = new AMap.Polyline({
+                        path: detailedPath,
+                        strokeColor: color,
+                        strokeWeight: 5,
+                        strokeOpacity: 0.9,
+                        zIndex: 20
+                    });
+                    map.add(routeLine);
+                    routeLines.push(routeLine);
+                }
+            } else {
+                console.error('❌ 公交路线规划失败:', status, result);
+            }
+        });
+    }
+
+    function showMapLoading(message) {
+        const overlay = document.getElementById('mapLoadingOverlay');
+        const text = document.getElementById('mapLoadingText');
+        const detail = document.getElementById('mapLoadingDetail');
+        if (overlay) {
+            overlay.classList.remove('hidden');
+            overlay.style.display = 'flex';
+        }
+        if (text) {
+            text.textContent = '🗺️ 正在加载地图...';
+        }
+        if (message && detail) {
+            detail.textContent = message;
+        }
+    }
+
+    function hideMapLoading() {
+        const overlay = document.getElementById('mapLoadingOverlay');
+        const detail = document.getElementById('mapLoadingDetail');
+        if (overlay) {
+            overlay.classList.add('hidden');
+            overlay.style.display = 'none';
+        }
+        if (detail) {
+            detail.textContent = '';
+        }
+    }
+
+    function addMarker(lng, lat, name, type, dayIdx, idx, totalPoints = 0) {
+        const markerColor = getMarkerColor(dayIdx);
+        const markerNumber = idx + 1;
+        
+        // 判断是否是起点或终点
+        const isStart = idx === 0;
+        const isEnd = totalPoints > 0 && idx === totalPoints - 1;
+        
+        // 使用高德地图官方图标（带起点/终点标识）
+        const iconPath = getMarkerIconByType(type, isStart, isEnd);
+        
+        const marker = new AMap.Marker({
+            position: new AMap.LngLat(lng, lat),
+            title: name,
+            icon: new AMap.Icon({
+                size: new AMap.Size(32, 32),
+                image: iconPath,
+                imageSize: new AMap.Size(32, 32)
+            }),
+            zIndex: 100 + dayIdx * 10 + idx,
+            extData: { dayIdx: dayIdx, name: name, type: type, isStart: isStart, isEnd: isEnd }
+        });
+        
+        // 添加序号标签（带起点/终点标识）
+        let positionLabel = `${markerNumber}`;
+        if (isStart) positionLabel = '🚩';
+        if (isEnd) positionLabel = '🏁';
+        
+        marker.setLabel({
+            offset: new AMap.Pixel(16, -40),
+            content: `<div style="background:${markerColor};color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.2);">${positionLabel}</div>`,
+            direction: 'top'
+        });
+        
+        // 添加信息窗体（带路线顺序提示）
+        let positionText = `第${markerNumber}站`;
+        if (isStart) positionText = '🚩 起点';
+        if (isEnd) positionText = '🏁 终点';
+        
+        const nextSpotHint = !isEnd && totalPoints > 0 ? `<div style="color:#10B981;font-size:12px;margin-top:8px;">👉 下一站: 第${markerNumber + 1}站</div>` : '';
+        
+        // 获取地址信息
+        let addressDisplay = '';
+        if (typeof pt !== 'undefined' && pt.address) {
+            addressDisplay = `<div style="color:#10B981;font-size:12px;margin-top:8px;padding:6px;background:#f0fdf4;border-radius:4px;">
+                                📍 ${pt.address}
+                             </div>`;
+        }
+        
+        const infoWindow = new AMap.InfoWindow({
+            content: `
+                <div style="min-width:240px;padding:10px;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <img src="${iconPath}" width="24" height="24" />
+                        <h4 style="font-size:16px;font-weight:bold;margin:0;">${name}</h4>
+                    </div>
+                    <div style="color:#666;font-size:13px;margin-bottom:8px;">
+                        <span style="display:inline-block;padding:2px 8px;background:${markerColor};color:white;border-radius:4px;font-size:11px;margin-right:6px;">第${dayIdx + 1}天</span>
+                        <span style="display:inline-block;padding:2px 8px;background:#f0f0f0;color:#666;border-radius:4px;font-size:11px;">${type}</span>
+                        <span style="display:inline-block;padding:2px 8px;background:#3B82F6;color:white;border-radius:4px;font-size:11px;">${positionText}</span>
+                    </div>
+                    <div style="color:#999;font-size:12px;margin-bottom:4px;">
+                        <span>🗺️ 坐标: ${lng.toFixed(4)}, ${lat.toFixed(4)}</span>
+                    </div>
+                    ${addressDisplay}
+                    ${nextSpotHint}
+                    <button onclick="openSpotDetail('${name.replace(/'/g, "\\'")}', '${type.replace(/'/g, "\\'")}', '')" 
+                        style="width:100%;padding:6px 12px;background:#3B82F6;color:white;border:none;border-radius:4px;font-size:12px;cursor:pointer;margin-top:8px;">
+                        👁️ 查看详情
+                    </button>
+                </div>
+            `,
+            offset: new AMap.Pixel(0, -30),
+            autoMove: true
+        });
+
+        marker.on('click', function() {
+            // 关闭其他信息窗口
+            infoWindows.forEach(iw => iw.close());
+            infoWindow.open(map, marker.getPosition());
+        });
+
+        if (map) {
+            map.add(marker);
+            markers.push(marker);
+            infoWindows.push(infoWindow);
+        } else {
+            console.error('地图不存在，无法添加标记');
+        }
+    }
+
+    // 打卡功能
+    function checkInLocation(name) {
+        alert(`✅ 已打卡: ${name}`);
+        console.log(`✅ 打卡: ${name}`);
+    }
+
+    function getMarkerColor(dayIdx) {
+        const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+        return colors[dayIdx % colors.length];
+    }
+
+    async function refreshMap() {
+        console.log('\n====================================');
+        console.log('🔄 开始刷新地图');
+        console.log('====================================');
+        
+        // 显示加载提示
+        showMapLoading('正在初始化地图...');
+        
+        // 检查数据
+        console.log('📊 currentPlanData:', currentPlanData ? '存在' : '不存在');
+        if (currentPlanData) {
+            console.log('  - 城市:', currentPlanData.city);
+            console.log('  - 天数:', currentPlanData.days);
+            console.log('  - plan数组长度:', currentPlanData.plan?.length || 0);
+            if (currentPlanData.plan && currentPlanData.plan.length > 0) {
+                console.log('  - 第一天数据:', JSON.stringify(currentPlanData.plan[0]));
+            }
+        }
+        
+        await initMap();
+        
+        // 隐藏加载提示
+        setTimeout(() => {
+            hideMapLoading();
+        }, 1000);
+    }
+
+    // 用户系统
+    function getUsers() { return JSON.parse(localStorage.getItem(STORAGE_KEY_USERS) || '[]'); }
+    function saveUsers(u) { localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(u)); }
+    function updateNavUserStatus() {
+        let btn = document.getElementById('loginBtn'), prof = document.getElementById('userProfile');
+        if (currentUser) { 
+            if(btn) btn.style.display = 'none'; 
+            if(prof) prof.style.display = 'flex'; 
+            const nickEl = document.getElementById('userNickname');
+            if(nickEl) nickEl.innerText = currentUser.nickname || currentUser.account; 
+        } else { 
+            if(btn) btn.style.display = 'block'; 
+            if(prof) prof.style.display = 'none'; 
+        }
+    }
+    function handleLogin() {
+        let acc = document.getElementById('loginAccount')?.value.trim(), pwd = document.getElementById('loginPassword')?.value.trim();
+        let user = getUsers().find(u => u.account === acc && u.password === pwd);
+        if (user) { 
+            currentUser = user; isGuest = false; 
+            localStorage.setItem(STORAGE_KEY_CURRENT_USER, acc); 
+            if (document.getElementById('rememberMe')?.checked) localStorage.setItem(STORAGE_KEY_REMEMBER, JSON.stringify({ acc, pwd })); 
+            else localStorage.removeItem(STORAGE_KEY_REMEMBER); 
+            updateNavUserStatus(); closeLoginModal(); loadProfileTrips(); renderExpensesList(); renderVotes(); alert('登录成功'); 
+        } else alert('账号或密码错误');
+    }
+    function handleRegister() {
+        let nick = document.getElementById('regNickname')?.value.trim(), acc = document.getElementById('regAccount')?.value.trim(), pwd = document.getElementById('regPassword')?.value, conf = document.getElementById('regConfirmPassword')?.value;
+        if (!nick || !acc || !pwd) return alert('请填写完整');
+        if (pwd !== conf) return alert('两次密码不一致');
+        if (pwd.length < 6) return alert('密码至少6位');
+        let users = getUsers();
+        if (users.find(u => u.account === acc)) return alert('账号已存在');
+        let prefs = Array.from(document.querySelectorAll('#registerPane .pref-reg:checked')).map(cb => cb.value);
+        users.push({ account: acc, password: pwd, nickname: nick, preferences: { prefs }, createdAt: new Date() });
+        saveUsers(users);
+        alert('注册成功，请登录');
+        switchAuthTab('login');
+    }
+    function handleLogout() { currentUser = null; isGuest = false; localStorage.removeItem(STORAGE_KEY_CURRENT_USER); updateNavUserStatus(); switchToPage('home'); alert('已退出'); }
+    function enterAsGuest() { isGuest = true; currentUser = null; closeLoginModal(); updateNavUserStatus(); alert('游客模式，部分功能需注册'); }
+    function openLoginModal() { const el = document.getElementById('loginModal'); if(el) el.style.display = 'flex'; switchAuthTab('login'); }
+    function closeLoginModal() { const el = document.getElementById('loginModal'); if(el) el.style.display = 'none'; }
+    function switchAuthTab(type) {
+        const loginPane = document.getElementById('loginPane'), regPane = document.getElementById('registerPane');
+        const loginTab = document.getElementById('loginTabBtn'), regTab = document.getElementById('registerTabBtn');
+        if (type === 'login') {
+            loginPane?.classList.remove('hidden'); regPane?.classList.add('hidden');
+            loginTab?.classList.add('bg-blue-500', 'text-white'); loginTab?.classList.remove('bg-gray-200', 'dark:bg-gray-700');
+            regTab?.classList.add('bg-gray-200', 'dark:bg-gray-700'); regTab?.classList.remove('bg-blue-500', 'text-white');
+        } else {
+            loginPane?.classList.add('hidden'); regPane?.classList.remove('hidden');
+            regTab?.classList.add('bg-blue-500', 'text-white'); regTab?.classList.remove('bg-gray-200', 'dark:bg-gray-700');
+            loginTab?.classList.add('bg-gray-200', 'dark:bg-gray-700'); loginTab?.classList.remove('bg-blue-500', 'text-white');
+        }
+    }
+    function openPreferences() { if (!currentUser) return openLoginModal(); alert('偏好设置：可在此调整节奏/伙伴等'); }
+    function showForgetPassword() { alert('请联系客服 reset@zhiyou.com'); }
+
+    function loadProfileTrips() {
+        let container = document.getElementById('tripsListProfile');
+        if (!currentUser) { if(container) container.innerHTML = '<p class="text-gray-400">请登录后查看行程</p>'; return; }
+        let trips = JSON.parse(localStorage.getItem(`zhiyou_trips_${currentUser.account}`) || '[]');
+        if (trips.length === 0) { if(container) container.innerHTML = '<p class="text-gray-400">暂无行程，快去AI规划师生成吧~</p>'; }
+        else if(container) container.innerHTML = trips.map((t,i) => `<div class="bg-white/60 p-3 rounded-xl"><b>${t.city} ${t.days}日</b><button onclick="viewSavedTrip(${i})" class="text-blue-500 ml-3 text-sm">查看</button><button onclick="deleteSavedTrip(${i})" class="text-red-500 ml-2 text-sm">删除</button></div>`).join('');
+    }
+    function viewSavedTrip(idx) { let trips = JSON.parse(localStorage.getItem(`zhiyou_trips_${currentUser.account}`) || '[]'); currentPlanData = trips[idx]; renderPlanBook(currentPlanData); switchToPage('aiplanner'); }
+    function deleteSavedTrip(idx) { let trips = JSON.parse(localStorage.getItem(`zhiyou_trips_${currentUser.account}`) || '[]'); trips.splice(idx,1); localStorage.setItem(`zhiyou_trips_${currentUser.account}`, JSON.stringify(trips)); loadProfileTrips(); }
+    function addExpense() {
+        if (!currentUser) return openLoginModal();
+        let desc = document.getElementById('expenseDesc')?.value, amt = parseFloat(document.getElementById('expenseAmount')?.value);
+        if (!desc || isNaN(amt)) return alert('填写完整');
+        let exps = JSON.parse(localStorage.getItem(`zhiyou_expenses_${currentUser.account}`) || '[]');
+        exps.push({ id: Date.now(), desc, amt, category: document.getElementById('expenseCategory')?.value, date: new Date() });
+        localStorage.setItem(`zhiyou_expenses_${currentUser.account}`, JSON.stringify(exps));
+        renderExpensesList();
+    }
+    function renderExpensesList() {
+        let listDiv = document.getElementById('expenseListProfile');
+        if (!currentUser) { if(listDiv) listDiv.innerHTML = ''; return; }
+        let exps = JSON.parse(localStorage.getItem(`zhiyou_expenses_${currentUser.account}`) || '[]');
+        let total = 0, html = '';
+        exps.slice().reverse().forEach(e => { total += e.amt; html += `<div class="flex justify-between border-b py-1"><span>${e.desc} (${e.category})</span><span>¥${e.amt}</span></div>`; });
+        html += `<div class="font-bold mt-2">总计: ¥${total}</div>`;
+        if(listDiv) listDiv.innerHTML = html;
+    }
+    function createVote() {
+        if (!currentUser) return openLoginModal();
+        let q = prompt('投票问题'); if (!q) return;
+        let opts = prompt('选项用逗号隔开'); if (!opts) return;
+        let votes = JSON.parse(localStorage.getItem(`zhiyou_votes_${currentUser.account}`) || '[]');
+        votes.push({ id: Date.now(), question: q, options: opts.split(',').map(o => ({ text: o.trim(), count: 0 })) });
+        localStorage.setItem(`zhiyou_votes_${currentUser.account}`, JSON.stringify(votes));
+        renderVotes(); alert('投票创建成功');
+    }
+    function renderVotes() {
+        let container = document.getElementById('voteListProfile');
+        if (!currentUser) { if(container) container.innerHTML = ''; return; }
+        let votes = JSON.parse(localStorage.getItem(`zhiyou_votes_${currentUser.account}`) || '[]');
+        if (votes.length === 0) { if(container) container.innerHTML = '<p>暂无投票</p>'; }
+        else if(container) container.innerHTML = votes.map(v => `<div class="bg-white/60 p-3 rounded-xl"><b>${v.question}</b> ${v.options.map((o,idx)=>`<span class="inline-block bg-gray-200 rounded-full px-2 mx-1 cursor-pointer" onclick="voteForOption(${v.id},${idx})">${o.text}(${o.count})</span>`)}<button onclick="deleteVote(${v.id})" class="text-red-500 text-sm ml-2">删除</button></div>`).join('');
+    }
+    function voteForOption(voteId, optIdx) { let votes = JSON.parse(localStorage.getItem(`zhiyou_votes_${currentUser.account}`) || '[]'); let vote = votes.find(v => v.id === voteId); if (vote) { vote.options[optIdx].count++; localStorage.setItem(`zhiyou_votes_${currentUser.account}`, JSON.stringify(votes)); renderVotes(); } }
+    function deleteVote(id) { if (confirm('删除投票？')) { let votes = JSON.parse(localStorage.getItem(`zhiyou_votes_${currentUser.account}`) || '[]'); votes = votes.filter(v => v.id !== id); localStorage.setItem(`zhiyou_votes_${currentUser.account}`, JSON.stringify(votes)); renderVotes(); } }
+
+    // 🔥 手账工坊核心功能
+    function selectHandbookBg(bgId) {
+        selectedBg = bgId;
+        document.querySelectorAll('[id^="bg"]').forEach(el => el.classList.remove('border-primary'));
+        document.getElementById(`bg${bgId}`)?.classList.add('border-primary');
+    }
+
+    function handlePhotoUpload(e) {
+        for (let f of e.target.files) {
+            let reader = new FileReader();
+            reader.onload = ev => { uploadedPhotos.push(ev.target.result); renderPhotoGallery(); };
+            reader.readAsDataURL(f);
+        }
+    }
+    function renderPhotoGallery() {
+        let html = '';
+        uploadedPhotos.forEach((p,i) => {
+            html += `<div class="relative"><img src="${p}" class="h-24 w-full object-cover rounded-lg"><button onclick="removePhoto(${i})" class="absolute top-0 right-0 bg-black/60 text-white rounded-full w-5 h-5 text-xs">✖</button></div>`;
+        });
+        const el = document.getElementById('photoGallery');
+        if(el) el.innerHTML = html;
+    }
+    function addSticker(s) {
+        addedStickers.push(s);
+        const el = document.getElementById('stickerArea');
+        if(el) el.innerHTML = addedStickers.map(st => `<span class="text-3xl">${st}</span>`).join('');
+    }
+
+    // 保存/编辑手账
+    function saveHandbook() {
+        if (!currentUser) return openLoginModal();
+        let title = document.getElementById('handbookTitle')?.value;
+        if (!title) return alert('写个标题吧');
+
+        let handbookData = {
+            id: currentEditHandbookId || Date.now(),
+            title,
+            tag: document.getElementById('handbookTag')?.value || '旅行',
+            notes: document.getElementById('handbookNotes')?.value,
+            photos: uploadedPhotos,
+            stickers: addedStickers,
+            bg: selectedBg,
+            date: new Date()
+        };
+
+        let handbooks = JSON.parse(localStorage.getItem(`zhiyou_handbooks_${currentUser.account}`) || '[]');
+
+        if (currentEditHandbookId) {
+            // 编辑模式
+            let index = handbooks.findIndex(h => h.id === currentEditHandbookId);
+            if(index !== -1) handbooks[index] = handbookData;
+            alert('手账已更新！');
+            currentEditHandbookId = null;
+        } else {
+            // 新增模式
+            handbooks.push(handbookData);
+            alert('手账已珍藏！');
+        }
+
+        localStorage.setItem(`zhiyou_handbooks_${currentUser.account}`, JSON.stringify(handbooks));
+        resetHandbookEditor();
+        viewHandbooks();
+    }
+
+    // 查看手账列表
+    function viewHandbooks() {
+        if (!currentUser) return openLoginModal();
+        let handbooks = JSON.parse(localStorage.getItem(`zhiyou_handbooks_${currentUser.account}`) || '[]');
+        let grid = document.getElementById('handbookGrid');
+
+        if (handbooks.length === 0) {
+            if(grid) grid.innerHTML = '<p class="col-span-full text-center text-gray-500">暂无手账，制作一本吧~</p>';
+        } else if(grid) {
+            grid.innerHTML = handbooks.map(h => {
+                let cover = h.photos.length > 0 ? h.photos[0] : 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500';
+                return `
+                    <div class="handbook-card handbook-bg-${h.bg} bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden cursor-pointer" onclick="openHandbookDetail(${h.id})">
+                        <img src="${cover}" class="h-40 w-full object-cover">
+                        <div class="p-3">
+                            <h4 class="font-bold text-lg">${h.title}</h4>
+                            <span class="text-xs bg-blue-100 px-2 py-0.5 rounded">${h.tag}</span>
+                            <p class="text-sm text-gray-500 line-clamp-2 mt-1">${h.notes?.slice(0,60) || '无笔记'}</p>
+                            <div class="flex gap-1 mt-2 text-2xl">${h.stickers?.slice(0,3).join(' ') || ''}</div>
+                            <span class="text-xs text-gray-400">${new Date(h.date).toLocaleDateString()}</span>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+        document.getElementById('handbookList')?.classList.remove('hidden');
+        document.getElementById('handbookDetailView')?.classList.add('hidden');
+    }
+
+    // 手账详情
+    function openHandbookDetail(id) {
+        let handbooks = JSON.parse(localStorage.getItem(`zhiyou_handbooks_${currentUser.account}`) || '[]');
+        let h = handbooks.find(hb => hb.id === id);
+        if (!h) return;
+
+        currentEditHandbookId = h.id;
+        let html = `
+            <h2 class="text-2xl font-bold mb-3">${h.title}</h2>
+            <span class="bg-blue-100 px-2 py-1 rounded text-xs">${h.tag}</span>
+            <p class="text-sm text-gray-500 mb-4">${new Date(h.date).toLocaleString()}</p>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                ${h.photos.map(p => `<img src="${p}" class="handbook-detail-photo rounded-xl w-full h-48 object-cover">`).join('') || '<p class="text-gray-400">无照片</p>'}
+            </div>
+            <div class="bg-amber-50 dark:bg-gray-600 p-4 rounded-xl mb-4">
+                <h3 class="font-bold mb-1">📝 旅行笔记</h3>
+                <p class="whitespace-pre-line">${h.notes || '未记录'}</p>
+            </div>
+            <div class="flex flex-wrap gap-2 text-3xl">
+                ${h.stickers?.map(s => `<span>${s}</span>`).join('') || '<span class="text-gray-400 text-sm">无贴纸</span>'}
+            </div>`;
+
+        const contentEl = document.getElementById('handbookDetailContent');
+        if(contentEl) contentEl.innerHTML = html;
+        document.getElementById('handbookList')?.classList.add('hidden');
+        document.getElementById('handbookDetailView')?.classList.remove('hidden');
+    }
+
+    // 编辑手账
+    function editHandbook() {
+        if (!currentEditHandbookId) return;
+        let handbooks = JSON.parse(localStorage.getItem(`zhiyou_handbooks_${currentUser.account}`) || '[]');
+        let h = handbooks.find(hb => hb.id === currentEditHandbookId);
+        if(!h) return;
+
+        const titleEl = document.getElementById('handbookTitle');
+        const tagEl = document.getElementById('handbookTag');
+        const notesEl = document.getElementById('handbookNotes');
+        
+        if(titleEl) titleEl.value = h.title;
+        if(tagEl) tagEl.value = h.tag;
+        if(notesEl) notesEl.value = h.notes;
+        
+        uploadedPhotos = h.photos || [];
+        addedStickers = h.stickers || [];
+        selectedBg = h.bg || 1;
+
+        selectHandbookBg(selectedBg);
+        renderPhotoGallery();
+        const stickerEl = document.getElementById('stickerArea');
+        if(stickerEl) stickerEl.innerHTML = addedStickers.map(st => `<span class="text-3xl">${st}</span>`).join('');
+
+        document.getElementById('handbookList')?.classList.add('hidden');
+        document.getElementById('handbookDetailView')?.classList.add('hidden');
+    }
+
+    // 手账搜索
+    function searchHandbooks() {
+        let keyword = (document.getElementById('handbookSearch')?.value || '').toLowerCase();
+        let handbooks = JSON.parse(localStorage.getItem(`zhiyou_handbooks_${currentUser.account}`) || '[]');
+        let filtered = handbooks.filter(h => (h.title || '').toLowerCase().includes(keyword) || (h.tag || '').toLowerCase().includes(keyword));
+
+        const grid = document.getElementById('handbookGrid');
+        if(grid) {
+            grid.innerHTML = filtered.map(h => {
+                let cover = h.photos.length > 0 ? h.photos[0] : 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500';
+                return `
+                    <div class="handbook-card handbook-bg-${h.bg} rounded-2xl shadow-md overflow-hidden cursor-pointer" onclick="openHandbookDetail(${h.id})">
+                        <img src="${cover}" class="h-40 w-full object-cover">
+                        <div class="p-3">
+                            <h4 class="font-bold text-lg">${h.title}</h4>
+                            <span class="text-xs bg-blue-100 px-2 py-0.5 rounded">${h.tag}</span>
+                            <p class="text-sm text-gray-500 line-clamp-2 mt-1">${h.notes?.slice(0,60) || '无笔记'}</p>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+    }
+
+    // 手账分享/导出/删除
+    function shareHandbook() { alert('分享手账功能开发中...'); }
+    function exportHandbook() { alert('导出手账功能开发中...'); }
+    function deleteHandbook() {
+        if (!currentEditHandbookId) return;
+        if (confirm('确定删除此手账？')) {
+            let handbooks = JSON.parse(localStorage.getItem(`zhiyou_handbooks_${currentUser.account}`) || '[]');
+            handbooks = handbooks.filter(h => h.id !== currentEditHandbookId);
+            localStorage.setItem(`zhiyou_handbooks_${currentUser.account}`, JSON.stringify(handbooks));
+            currentEditHandbookId = null;
+            viewHandbooks();
+            alert('手账已删除');
+        }
+    }
+
+    function backToHandbookList() {
+        document.getElementById('handbookDetailView')?.classList.add('hidden');
+        document.getElementById('handbookList')?.classList.remove('hidden');
+    }
+    function closeHandbookList() { document.getElementById('handbookList')?.classList.add('hidden'); }
+    function removePhoto(i) { uploadedPhotos.splice(i,1); renderPhotoGallery(); }
+    function resetHandbookEditor() {
+        currentEditHandbookId = null;
+        uploadedPhotos = []; addedStickers = []; selectedBg = 1;
+        renderPhotoGallery();
+        const stickerEl = document.getElementById('stickerArea');
+        if(stickerEl) stickerEl.innerHTML = '';
+        const titleEl = document.getElementById('handbookTitle');
+        const tagEl = document.getElementById('handbookTag');
+        const notesEl = document.getElementById('handbookNotes');
+        if(titleEl) titleEl.value = '';
+        if(tagEl) tagEl.value = '';
+        if(notesEl) notesEl.value = '';
+        selectHandbookBg(1);
+    }
+
+    function toggleProfileMenu() { document.getElementById('profileMenu')?.classList.toggle('hidden'); }
+    function closeProfileMenu() { document.getElementById('profileMenu')?.classList.add('hidden'); }
+    document.addEventListener('click', (e) => { if (!e.target.closest('#userProfile') && !e.target.closest('#profileMenu')) document.getElementById('profileMenu')?.classList.add('hidden'); });
+
+    // 页面加载完成：读取已登录用户、绑定主题开关、绑定回到顶部按钮
+    window.addEventListener('load', () => {
+        // 1) 恢复登录状态
+        const savedAccount = localStorage.getItem(STORAGE_KEY_CURRENT_USER);
+        if (savedAccount) {
+            const users = getUsers();
+            const matched = users.find(u => u.account === savedAccount);
+            if (matched) {
+                currentUser = matched;
+                isGuest = false;
+                updateNavUserStatus();
+            }
+        }
+
+        // 2) 初始化页面（故事、景点、排行榜等）
+        initPage();
+
+        // 3) 明暗主题切换
+        const themeSwitch = document.getElementById('themeSwitch');
+        if (themeSwitch) {
+            themeSwitch.onclick = () => {
+                document.documentElement.classList.toggle('dark');
+            };
+        }
+
+        // 4) 回到顶部按钮的显隐与点击
+        const backTop = document.getElementById('backTop');
+        if (backTop) {
+            backTop.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        window.onscroll = () => {
+            const bt = document.getElementById('backTop');
+            if (bt) bt.classList.toggle('hidden', window.scrollY < 500);
+        };
+    });
+    
+    // 全局挂载（所有提供给 HTML 或其他 JS 调用的函数都挂到 window 上，避免 "is not defined" 报错）
+    window.openStoryDetail = openStoryDetail;
+    window.openSpotDetail = openSpotDetail;
+    window.viewSavedTrip = viewSavedTrip;
+    window.deleteSavedTrip = deleteSavedTrip;
+    window.voteForOption = voteForOption;
+    window.deleteVote = deleteVote;
+    window.removePhoto = removePhoto;
+    window.goBackToStories = goBackToStories;
+    window.goBack = goBack;
+    window.enterAsGuest = enterAsGuest;
+    window.switchAuthTab = switchAuthTab;
+    window.openHandbookDetail = openHandbookDetail;
+    window.backToHandbookList = backToHandbookList;
+    window.saveHandbook = saveHandbook;
+    window.viewHandbooks = viewHandbooks;
+    window.resetHandbookEditor = resetHandbookEditor;
+    window.selectHandbookBg = selectHandbookBg;
+    window.searchHandbooks = searchHandbooks;
+    window.editHandbook = editHandbook;
+    window.shareHandbook = shareHandbook;
+    window.exportHandbook = exportHandbook;
+    window.deleteHandbook = deleteHandbook;
+    window.generatePlanWithAI = generatePlanWithAI;
+    window.saveCurrentPlan = saveCurrentPlan;
+    window.exportPlanPDF = exportPlanPDF;
+    window.setCity = setCity;
+    window.setDays = setDays;
+    window.handleLogin = handleLogin;
+    window.handleRegister = handleRegister;
+    window.handleLogout = handleLogout;
+    window.openLoginModal = openLoginModal;
+    window.closeLoginModal = closeLoginModal;
+    window.openPreferences = openPreferences;
+    window.showForgetPassword = showForgetPassword;
+    window.addExpense = addExpense;
+    window.createVote = createVote;
+    window.getTrafficAI = getTrafficAI;
+    window.getHotelAI = getHotelAI;
+    window.getWeatherAI = getWeatherAI;
+    window.exportChecklist = exportChecklist;
+    window.autoBudgetAI = autoBudgetAI;
+    window.getWarnings = getWarnings;
+    window.getCultureTips = getCultureTips;
+    window.askTravelQA = askTravelQA;
+    window.generateLuggageList = generateLuggageList;
+    window.startVoiceRecognition = startVoiceRecognition;
+    window.processVoiceCommand = processVoiceCommand;
+    window.handlePhotoUpload = handlePhotoUpload;
+    window.addSticker = addSticker;
+    window.closeHandbookList = closeHandbookList;
+    window.toggleProfileMenu = toggleProfileMenu;
+    window.closeProfileMenu = closeProfileMenu;
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+
+# 环境变量文件 (非常重要！)
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+
+# 部署相关
+netlify/functions/  
+# Netlify Functions 依赖会在云端自动安装，无需上传
